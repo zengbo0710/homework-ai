@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { AppShell } from './components/AppShell';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { InstallPrompt } from './components/InstallPrompt';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ChildSelectorPage } from './pages/ChildSelectorPage';
@@ -29,6 +30,7 @@ export default function App() {
           </Route>
         </Route>
       </Routes>
+      <InstallPrompt />
     </AuthProvider>
   );
 }
