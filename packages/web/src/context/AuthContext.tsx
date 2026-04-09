@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { apiClient, setAccessToken } from '../lib/api';
 
 interface AuthUser {
@@ -18,7 +18,7 @@ interface AuthContextValue {
   accessToken: string | null;
   isLoading: boolean;
   login(tokens: AuthTokens): void;
-  logout(): void;
+  logout(): Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -29,6 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     const stored = localStorage.getItem('refreshToken');
     if (!stored) {
       setIsLoading(false);
@@ -37,25 +38,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     apiClient
       .post('/auth/refresh', { refreshToken: stored })
       .then((res) => {
+        if (cancelled) return;
         const { accessToken: at, user: u } = res.data;
         setAccessToken(at);
         setAccessTokenState(at);
         setUser(u);
       })
       .catch(() => {
-        localStorage.removeItem('refreshToken');
+        if (!cancelled) localStorage.removeItem('refreshToken');
       })
-      .finally(() => setIsLoading(false));
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  function login(tokens: AuthTokens): void {
+  const login = useCallback(function(tokens: AuthTokens): void {
     localStorage.setItem('refreshToken', tokens.refreshToken);
     setAccessToken(tokens.accessToken);
     setAccessTokenState(tokens.accessToken);
     setUser(tokens.user);
-  }
+  }, []);
 
-  async function logout(): Promise<void> {
+  const logout = useCallback(async function(): Promise<void> {
     const stored = localStorage.getItem('refreshToken');
     if (stored) {
       await apiClient.post('/auth/logout', { refreshToken: stored }).catch(() => {});
@@ -64,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAccessToken(null);
     setAccessTokenState(null);
     setUser(null);
-  }
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, accessToken, isLoading, login, logout }}>
