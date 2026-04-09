@@ -3,13 +3,17 @@ import path from 'path';
 import fs from 'fs';
 import sharp from 'sharp';
 import { v4 as uuidv4 } from 'uuid';
+import { Subject, WrongAnswerStatus } from '@prisma/client';
 import { authenticate } from '../plugins/authenticate';
 import { submissionsDir } from '../config';
+import { deductToken, refundToken } from '../lib/token-helpers';
+import { getAiConfig } from '../lib/ai-config';
+import { getOpenAIClient } from '../lib/openai';
+import { analyzeHomework } from '../lib/ai-analysis';
 
 export async function submissionRoutes(app: FastifyInstance): Promise<void> {
-  // POST /api/submissions — upload 1-10 images, create submission record
+  // POST /api/submissions — upload 1-10 images, run AI analysis, return completed result
   app.post('/api/submissions', { preHandler: [authenticate] }, async (request, reply) => {
-    // Parse multipart: childId field + images[] files
     const parts = request.parts();
     let childId: string | null = null;
     const imageBuffers: { buffer: Buffer; mimetype: string }[] = [];
@@ -18,7 +22,7 @@ export async function submissionRoutes(app: FastifyInstance): Promise<void> {
       if (part.type === 'field' && part.fieldname === 'childId') {
         childId = part.value as string;
       } else if (part.type === 'file' && part.fieldname === 'images') {
-        if (imageBuffers.length >= 10) continue; // ignore extras
+        if (imageBuffers.length >= 10) continue;
         const buf = await part.toBuffer();
         imageBuffers.push({ buffer: buf, mimetype: part.mimetype });
       }
@@ -26,60 +30,166 @@ export async function submissionRoutes(app: FastifyInstance): Promise<void> {
 
     if (!childId) return reply.status(400).send({ error: 'missing_childId' });
     if (imageBuffers.length === 0) return reply.status(400).send({ error: 'no_images' });
-    if (imageBuffers.length > 10) return reply.status(400).send({ error: 'too_many_images' });
 
-    // Validate child ownership
-    const child = await app.prisma.child.findUnique({ where: { id: childId } });
-    if (!child) return reply.status(404).send({ error: 'child_not_found' });
-    if (child.parentId !== request.parentId) return reply.status(403).send({ error: 'forbidden' });
-
-    // Validate all images are image/* MIME
     for (const img of imageBuffers) {
       if (!img.mimetype.startsWith('image/')) {
         return reply.status(400).send({ error: 'invalid_file_type' });
       }
     }
 
-    // Ensure submissions dir exists
-    fs.mkdirSync(submissionsDir, { recursive: true });
+    const child = await app.prisma.child.findUnique({
+      where: { id: childId },
+      select: { parentId: true, grade: true },
+    });
+    if (!child) return reply.status(404).send({ error: 'child_not_found' });
+    if (child.parentId !== request.parentId) return reply.status(403).send({ error: 'forbidden' });
 
-    // Save each image (resize to max 1600px, JPEG quality 85)
-    const savedImages: { imageUrl: string; sortOrder: number }[] = [];
-    for (let i = 0; i < imageBuffers.length; i++) {
-      const filename = `${uuidv4()}.jpg`;
-      const outputPath = path.join(submissionsDir, filename);
-      await sharp(imageBuffers[i].buffer)
-        .resize(1600, 1600, { fit: 'inside', withoutEnlargement: true })
-        .jpeg({ quality: 85 })
-        .toFile(outputPath);
-      savedImages.push({ imageUrl: `/uploads/submissions/${filename}`, sortOrder: i + 1 });
+    // Check token balance before processing
+    const balance = await app.prisma.tokenBalance.findUnique({ where: { parentId: request.parentId } });
+    if (!balance || balance.balance < 1) {
+      return reply.status(402).send({ error: 'insufficient_tokens' });
     }
 
-    // Create submission + images in DB
+    // Resize and save images, retain processed buffers for AI
+    fs.mkdirSync(submissionsDir, { recursive: true });
+    const savedImages: { imageUrl: string; sortOrder: number }[] = [];
+    const processedBuffers: Buffer[] = [];
+
+    try {
+      for (let i = 0; i < imageBuffers.length; i++) {
+        const processed = await sharp(imageBuffers[i].buffer)
+          .resize(1600, 1600, { fit: 'inside', withoutEnlargement: true })
+          .jpeg({ quality: 85 })
+          .toBuffer();
+        const filename = `${uuidv4()}.jpg`;
+        fs.writeFileSync(path.join(submissionsDir, filename), processed);
+        savedImages.push({ imageUrl: `/uploads/submissions/${filename}`, sortOrder: i + 1 });
+        processedBuffers.push(processed);
+      }
+    } catch {
+      return reply.status(400).send({ error: 'invalid_image' });
+    }
+
+    // Create submission with processing status
     const submission = await app.prisma.submission.create({
       data: {
         childId,
         imageCount: savedImages.length,
-        status: 'pending',
-        images: {
-          create: savedImages,
-        },
+        status: 'processing',
+        images: { create: savedImages },
       },
-      include: { images: { orderBy: { sortOrder: 'asc' } } },
     });
 
-    return reply.status(201).send({
-      id: submission.id,
-      childId: submission.childId,
-      status: submission.status,
-      imageCount: submission.imageCount,
-      images: submission.images.map((img) => ({
-        id: img.id,
-        imageUrl: img.imageUrl,
-        sortOrder: img.sortOrder,
-      })),
-      createdAt: submission.createdAt,
-    });
+    // Deduct token (refund on any subsequent failure)
+    try {
+      await deductToken(app.prisma, request.parentId, submission.id, 'submission');
+    } catch {
+      await app.prisma.submission.update({
+        where: { id: submission.id },
+        data: { status: 'failed', errorMessage: 'Insufficient tokens' },
+      });
+      return reply.status(402).send({ error: 'insufficient_tokens' });
+    }
+
+    // Call AI
+    try {
+      const aiConfig = await getAiConfig(app.prisma);
+      const client = getOpenAIClient();
+      const result = await analyzeHomework(client, processedBuffers, child.grade, aiConfig);
+
+      await app.prisma.aiResponse.create({
+        data: {
+          submissionId: submission.id,
+          rawResponse: result as object,
+          summary: result.summary,
+          totalQuestions: result.totalQuestions,
+          correctCount: result.correctCount,
+          partialCorrectCount: result.partialCorrectCount,
+          wrongCount: result.wrongCount,
+          modelUsed: aiConfig.model,
+          latencyMs: result.latencyMs,
+        },
+      });
+
+      // Save only wrong + partial_correct to DB
+      const toSave = result.questions.filter((q) => q.status !== 'correct');
+      for (const q of toSave) {
+        await app.prisma.wrongAnswer.create({
+          data: {
+            submissionId: submission.id,
+            childId,
+            subject: result.subject as Subject,
+            questionNumber: q.questionNumber,
+            imageOrder: q.imageOrder,
+            questionText: q.questionText,
+            childAnswer: q.childAnswer ?? null,
+            correctAnswer: q.correctAnswer,
+            status: q.status as WrongAnswerStatus,
+            explanation: q.explanation,
+            topic: q.topic ?? null,
+            difficulty: q.difficulty ?? null,
+          },
+        });
+      }
+
+      await app.prisma.submission.update({
+        where: { id: submission.id },
+        data: { status: 'completed', detectedSubject: result.subject as Subject },
+      });
+
+      const updated = await app.prisma.submission.findUnique({
+        where: { id: submission.id },
+        include: {
+          images: { orderBy: { sortOrder: 'asc' } },
+          aiResponse: true,
+          wrongAnswers: { orderBy: { questionNumber: 'asc' } },
+        },
+      });
+
+      return reply.status(201).send({
+        id: updated!.id,
+        childId: updated!.childId,
+        status: updated!.status,
+        detectedSubject: updated!.detectedSubject,
+        imageCount: updated!.imageCount,
+        images: updated!.images.map((img) => ({
+          id: img.id,
+          imageUrl: img.imageUrl,
+          sortOrder: img.sortOrder,
+        })),
+        aiResponse: updated!.aiResponse
+          ? {
+              summary: updated!.aiResponse.summary,
+              totalQuestions: updated!.aiResponse.totalQuestions,
+              correctCount: updated!.aiResponse.correctCount,
+              partialCorrectCount: updated!.aiResponse.partialCorrectCount,
+              wrongCount: updated!.aiResponse.wrongCount,
+            }
+          : null,
+        wrongAnswers: updated!.wrongAnswers.map((wa) => ({
+          id: wa.id,
+          questionNumber: wa.questionNumber,
+          questionText: wa.questionText,
+          childAnswer: wa.childAnswer,
+          correctAnswer: wa.correctAnswer,
+          status: wa.status,
+          explanation: wa.explanation,
+          topic: wa.topic,
+          resolvedAt: wa.resolvedAt,
+        })),
+        createdAt: updated!.createdAt,
+      });
+    } catch (err) {
+      await refundToken(app.prisma, request.parentId, submission.id, 'submission').catch(() => {});
+      await app.prisma.submission.update({
+        where: { id: submission.id },
+        data: {
+          status: 'failed',
+          errorMessage: err instanceof Error ? err.message : 'AI analysis failed',
+        },
+      });
+      return reply.status(500).send({ error: 'ai_analysis_failed' });
+    }
   });
 
   // GET /api/submissions/:id — get submission with status, images, AI result
