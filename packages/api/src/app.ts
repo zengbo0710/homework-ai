@@ -2,6 +2,7 @@ import Fastify, { FastifyInstance } from 'fastify';
 import { prismaPlugin } from './plugins/prisma';
 import { healthRoute } from './routes/health';
 import { authRoutes } from './routes/auth';
+import { childrenRoutes } from './routes/children';
 
 export function buildApp(): FastifyInstance {
   if (!process.env.JWT_SECRET) {
@@ -11,5 +12,6 @@ export function buildApp(): FastifyInstance {
   app.register(prismaPlugin);
   app.register(healthRoute);
   app.register(authRoutes);
+  app.register(childrenRoutes);
   return app;
 }
