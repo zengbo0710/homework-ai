@@ -4,7 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ChildDashboardPage } from '../pages/ChildDashboardPage';
 
 vi.mock('../lib/api', () => ({
-  apiClient: { get: vi.fn() },
+  apiClient: { get: vi.fn().mockResolvedValue({ data: {} }) },
   setAccessToken: vi.fn(),
 }));
 
