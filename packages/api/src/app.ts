@@ -7,8 +7,9 @@ import { prismaPlugin } from './plugins/prisma';
 import { healthRoute } from './routes/health';
 import { authRoutes } from './routes/auth';
 import { childrenRoutes } from './routes/children';
+import { uploadsDir } from './config';
 
-export const uploadsDir = path.join(__dirname, '..', 'uploads', 'avatars');
+export { uploadsDir };
 
 export function buildApp(): FastifyInstance {
   if (!process.env.JWT_SECRET) {

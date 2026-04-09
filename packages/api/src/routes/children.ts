@@ -4,11 +4,9 @@ import fs from 'fs';
 import sharp from 'sharp';
 import { v4 as uuidv4 } from 'uuid';
 import { authenticate } from '../plugins/authenticate';
+import { uploadsDir } from '../config';
 
 const GRADE_MAP: Record<string, number> = { P1: 1, P2: 2, P3: 3, P4: 4, P5: 5, P6: 6 };
-
-// Defined here to avoid circular import with app.ts
-const uploadsDir = path.join(__dirname, '..', '..', 'uploads', 'avatars');
 
 function gradeToInt(gradeLevel: string): number {
   const grade = GRADE_MAP[gradeLevel];
@@ -109,14 +107,27 @@ export async function childrenRoutes(app: FastifyInstance): Promise<void> {
     const data = await request.file();
     if (!data) return reply.status(400).send({ error: 'no_file' });
 
-    const buffer = await data.toBuffer();
-    const filename = `${uuidv4()}.jpg`;
-    const outputPath = path.join(uploadsDir, filename);
+    if (!data.mimetype.startsWith('image/')) {
+      return reply.status(400).send({ error: 'invalid_file_type' });
+    }
 
-    await sharp(buffer)
-      .resize(256, 256, { fit: 'cover' })
-      .jpeg({ quality: 80 })
-      .toFile(outputPath);
+    const buffer = await data.toBuffer();
+    let filename: string;
+    let outputPath: string;
+    try {
+      filename = `${uuidv4()}.jpg`;
+      outputPath = path.join(uploadsDir, filename);
+      await sharp(buffer)
+        .resize(256, 256, { fit: 'cover' })
+        .jpeg({ quality: 80 })
+        .toFile(outputPath);
+    } catch {
+      // Clean up partial file if sharp failed
+      if (outputPath!) {
+        await fs.promises.unlink(outputPath!).catch(() => {});
+      }
+      return reply.status(400).send({ error: 'invalid_image' });
+    }
 
     // Delete old avatar file if present
     if (child.avatarUrl) {
