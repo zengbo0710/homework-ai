@@ -1,7 +1,12 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ChildDashboardPage } from '../pages/ChildDashboardPage';
+
+vi.mock('../lib/api', () => ({
+  apiClient: { get: vi.fn() },
+  setAccessToken: vi.fn(),
+}));
 
 describe('ChildDashboardPage', () => {
   it('renders all 5 subject blocks', () => {
