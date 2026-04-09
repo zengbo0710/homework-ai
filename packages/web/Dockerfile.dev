@@ -1,0 +1,20 @@
+FROM node:20-alpine
+WORKDIR /app
+
+COPY package*.json ./
+COPY packages/web/package*.json ./packages/web/
+COPY packages/shared/package*.json ./packages/shared/
+
+RUN npm ci
+
+COPY tsconfig.base.json ./
+COPY packages/shared ./packages/shared
+COPY packages/web ./packages/web
+
+RUN npm run build --workspace=packages/shared
+
+WORKDIR /app/packages/web
+
+EXPOSE 5173
+
+CMD ["npx", "vite", "--host", "0.0.0.0"]
