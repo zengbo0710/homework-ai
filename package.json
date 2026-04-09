@@ -1,0 +1,22 @@
+{
+  "name": "homework-ai",
+  "private": true,
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "build:shared": "npm run build --workspace=packages/shared",
+    "dev:api": "npm run dev --workspace=packages/api",
+    "dev:web": "npm run dev --workspace=packages/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint packages/*/src --ext .ts,.tsx",
+    "test": "npm test --workspaces --if-present"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react": "^7.34.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "prettier": "^3.2.0",
+    "typescript": "^5.4.0"
+  }
+}
