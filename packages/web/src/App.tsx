@@ -8,6 +8,8 @@ import { ChildSelectorPage } from './pages/ChildSelectorPage';
 import { ChildDashboardPage } from './pages/ChildDashboardPage';
 import { AddChildPage } from './pages/AddChildPage';
 import { EditChildPage } from './pages/EditChildPage';
+import { ScanPage } from './pages/ScanPage';
+import { SubmissionResultPage } from './pages/SubmissionResultPage';
 
 export default function App() {
   return (
@@ -22,6 +24,8 @@ export default function App() {
             <Route path="/dashboard/:childId" element={<ChildDashboardPage />} />
             <Route path="/children/new" element={<AddChildPage />} />
             <Route path="/children/:id/edit" element={<EditChildPage />} />
+            <Route path="/scan/:childId" element={<ScanPage />} />
+            <Route path="/submissions/:id" element={<SubmissionResultPage />} />
           </Route>
         </Route>
       </Routes>

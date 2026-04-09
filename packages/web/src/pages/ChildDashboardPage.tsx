@@ -23,20 +23,20 @@ export function ChildDashboardPage() {
         {SUBJECTS.map((subject) => (
           <button
             key={subject.key}
-            disabled
             aria-label={subject.label}
-            className="flex flex-col items-center p-5 border rounded-xl shadow-sm opacity-60 cursor-not-allowed"
+            onClick={() => navigate(`/scan/${childId}`)}
+            className="flex flex-col items-center p-5 border rounded-xl shadow-sm"
           >
             <span className="text-3xl mb-2">{subject.emoji}</span>
             <span className="font-medium text-sm">{subject.label}</span>
           </button>
         ))}
       </div>
-      {/* Camera FAB — placeholder until M2 */}
+      {/* Camera FAB */}
       <button
-        disabled
         aria-label="Scan homework"
-        className="fixed bottom-6 right-6 w-14 h-14 bg-indigo-600 rounded-full flex items-center justify-center text-white text-2xl shadow-lg opacity-60 cursor-not-allowed"
+        onClick={() => navigate(`/scan/${childId}`)}
+        className="fixed bottom-6 right-6 w-14 h-14 bg-indigo-600 rounded-full flex items-center justify-center text-white text-2xl shadow-lg"
       >
         📷
       </button>
