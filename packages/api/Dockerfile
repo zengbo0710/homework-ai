@@ -1,0 +1,42 @@
+# ─── Stage 1: Build ───────────────────────────────────────────────────────────
+FROM node:20-alpine AS builder
+WORKDIR /app
+
+# Copy package manifests for layer caching
+COPY package*.json ./
+COPY packages/api/package*.json ./packages/api/
+COPY packages/shared/package*.json ./packages/shared/
+
+RUN npm ci
+
+# Copy source
+COPY tsconfig.base.json ./
+COPY packages/shared ./packages/shared
+COPY packages/api ./packages/api
+
+# Build shared types, generate Prisma client, then build API
+RUN npm run build --workspace=packages/shared
+RUN npx prisma generate --schema=packages/api/prisma/schema.prisma
+RUN npm run build --workspace=packages/api
+
+# ─── Stage 2: Runtime ─────────────────────────────────────────────────────────
+FROM node:20-alpine
+WORKDIR /app
+
+# Copy built output and node_modules
+COPY --from=builder /app/packages/api/dist ./dist
+COPY --from=builder /app/packages/api/node_modules ./node_modules
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+
+# Copy Prisma schema and migrations for migrate deploy
+COPY packages/api/prisma ./prisma
+COPY packages/api/package.json ./
+
+# Ensure upload directories exist
+RUN mkdir -p uploads/avatars uploads/submissions
+
+EXPOSE 3001
+
+# Run migrations then start server
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
