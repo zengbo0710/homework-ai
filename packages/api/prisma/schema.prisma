@@ -114,6 +114,7 @@ model Child {
   submissions      Submission[]
   wrongAnswers     WrongAnswer[]
   practiceSessions PracticeSession[]
+  weaknessReports  WeaknessReport[]
 
   @@index([parentId])
   @@map("children")
@@ -242,6 +243,25 @@ model PracticeQuestion {
   practiceSession PracticeSession @relation(fields: [practiceSessionId], references: [id], onDelete: Cascade)
 
   @@map("practice_questions")
+}
+
+model WeaknessReport {
+  id             String   @id @default(uuid())
+  childId        String
+  subject        Subject
+  sourceWrongIds Json
+  topicGroups    Json
+  weaknesses     Json
+  summary        String   @db.Text
+  totalQuestions Int
+  totalTopics    Int
+  modelUsed      String?  @db.VarChar(50)
+  createdAt      DateTime @default(now())
+
+  child Child @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@index([childId, subject])
+  @@map("weakness_reports")
 }
 
 model RefreshToken {
