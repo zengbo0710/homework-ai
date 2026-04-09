@@ -9,6 +9,7 @@ import { authRoutes } from './routes/auth';
 import { childrenRoutes } from './routes/children';
 import { tokenRoutes } from './routes/tokens';
 import { submissionRoutes } from './routes/submissions';
+import { wrongAnswerRoutes } from './routes/wrong-answers';
 import { uploadsDir, submissionsDir } from './config';
 
 export { uploadsDir };
@@ -38,5 +39,6 @@ export function buildApp(): FastifyInstance {
   app.register(childrenRoutes);
   app.register(tokenRoutes);
   app.register(submissionRoutes);
+  app.register(wrongAnswerRoutes);
   return app;
 }
