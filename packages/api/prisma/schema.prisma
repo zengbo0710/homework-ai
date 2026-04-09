@@ -1,0 +1,244 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Subject {
+  math
+  english
+  science
+  chinese
+  higher_chinese
+}
+
+enum SubmissionStatus {
+  pending
+  processing
+  completed
+  failed
+}
+
+enum TokenTransactionType {
+  grant
+  purchase
+  deduct
+  refund
+}
+
+enum WrongAnswerStatus {
+  wrong
+  partial_correct
+}
+
+enum PracticeSourceType {
+  active
+  resolved
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model Parent {
+  id           String   @id @default(uuid())
+  email        String   @unique @db.VarChar(255)
+  passwordHash String   @db.VarChar(255)
+  name         String   @db.VarChar(100)
+  phone        String?  @db.VarChar(20)
+  locale       String   @default("en") @db.VarChar(10)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tokenBalance      TokenBalance?
+  tokenTransactions TokenTransaction[]
+  children          Child[]
+
+  @@map("parents")
+}
+
+model SystemConfig {
+  key         String   @id @db.VarChar(100)
+  value       Json
+  description String?  @db.Text
+  updatedAt   DateTime @updatedAt
+
+  @@map("system_config")
+}
+
+model TokenBalance {
+  parentId    String   @id
+  balance     Int      @default(0)
+  totalEarned Int      @default(0)
+  totalSpent  Int      @default(0)
+  updatedAt   DateTime @updatedAt
+
+  parent Parent @relation(fields: [parentId], references: [id], onDelete: Cascade)
+
+  @@map("token_balances")
+}
+
+model TokenTransaction {
+  id            String               @id @default(uuid())
+  parentId      String
+  type          TokenTransactionType
+  amount        Int
+  balanceAfter  Int
+  referenceId   String?              @db.VarChar(36)
+  referenceType String?              @db.VarChar(30)
+  description   String?              @db.Text
+  paymentId     String?              @db.VarChar(255)
+  createdAt     DateTime             @default(now())
+
+  parent Parent @relation(fields: [parentId], references: [id], onDelete: Cascade)
+
+  @@index([parentId])
+  @@index([parentId, createdAt(sort: Desc)])
+  @@map("token_transactions")
+}
+
+model Child {
+  id        String   @id @default(uuid())
+  parentId  String
+  name      String   @db.VarChar(100)
+  grade     Int
+  avatarUrl String?  @db.VarChar(500)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  parent           Parent            @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  submissions      Submission[]
+  wrongAnswers     WrongAnswer[]
+  practiceSessions PracticeSession[]
+
+  @@index([parentId])
+  @@map("children")
+}
+
+model Submission {
+  id              String           @id @default(uuid())
+  childId         String
+  detectedSubject Subject?
+  imageCount      Int
+  status          SubmissionStatus @default(pending)
+  errorMessage    String?          @db.Text
+  aiProvider      String?          @db.VarChar(30)
+  retryCount      Int              @default(0)
+  createdAt       DateTime         @default(now())
+
+  child        Child             @relation(fields: [childId], references: [id], onDelete: Cascade)
+  images       SubmissionImage[]
+  aiResponse   AiResponse?
+  wrongAnswers WrongAnswer[]
+
+  @@index([childId])
+  @@index([status])
+  @@map("submissions")
+}
+
+model SubmissionImage {
+  id           String   @id @default(uuid())
+  submissionId String
+  imageUrl     String   @db.VarChar(500)
+  imageHash    String?  @db.VarChar(64)
+  sortOrder    Int
+  createdAt    DateTime @default(now())
+
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@unique([submissionId, sortOrder])
+  @@index([submissionId])
+  @@map("submission_images")
+}
+
+model AiResponse {
+  id                  String   @id @default(uuid())
+  submissionId        String   @unique
+  rawResponse         Json
+  summary             String?  @db.Text
+  totalQuestions      Int?
+  correctCount        Int?
+  partialCorrectCount Int?
+  wrongCount          Int?
+  modelUsed           String?  @db.VarChar(50)
+  tokensUsed          Int?
+  costUsd             Decimal? @db.Decimal(8, 5)
+  latencyMs           Int?
+  createdAt           DateTime @default(now())
+
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@map("ai_responses")
+}
+
+model WrongAnswer {
+  id             String            @id @default(uuid())
+  submissionId   String
+  childId        String
+  subject        Subject
+  questionNumber Int
+  imageOrder     Int
+  questionText   String            @db.Text
+  childAnswer    String?           @db.Text
+  correctAnswer  String            @db.Text
+  status         WrongAnswerStatus
+  explanation    String            @db.Text
+  topic          String?           @db.VarChar(100)
+  difficulty     String?           @db.VarChar(20)
+  resolvedAt     DateTime?
+  createdAt      DateTime          @default(now())
+
+  submission      Submission              @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  child           Child                   @relation(fields: [childId], references: [id], onDelete: Cascade)
+  practiceSources PracticeSessionSource[]
+
+  @@index([childId])
+  @@index([childId, subject])
+  @@index([childId, topic])
+  @@map("wrong_answers")
+}
+
+model PracticeSession {
+  id             String             @id @default(uuid())
+  childId        String
+  subject        Subject
+  sourceType     PracticeSourceType @default(active)
+  multiplier     Int                @default(2)
+  totalQuestions Int
+  generatedAt    DateTime           @default(now())
+
+  child     Child                   @relation(fields: [childId], references: [id], onDelete: Cascade)
+  sources   PracticeSessionSource[]
+  questions PracticeQuestion[]
+
+  @@map("practice_sessions")
+}
+
+model PracticeSessionSource {
+  practiceSessionId String
+  wrongAnswerId     String
+
+  practiceSession PracticeSession @relation(fields: [practiceSessionId], references: [id], onDelete: Cascade)
+  wrongAnswer     WrongAnswer     @relation(fields: [wrongAnswerId], references: [id], onDelete: Cascade)
+
+  @@id([practiceSessionId, wrongAnswerId])
+  @@map("practice_session_sources")
+}
+
+model PracticeQuestion {
+  id                String   @id @default(uuid())
+  practiceSessionId String
+  questionText      String   @db.Text
+  answer            String   @db.Text
+  topic             String?  @db.VarChar(100)
+  difficulty        String?  @db.VarChar(20)
+  sortOrder         Int
+  createdAt         DateTime @default(now())
+
+  practiceSession PracticeSession @relation(fields: [practiceSessionId], references: [id], onDelete: Cascade)
+
+  @@map("practice_questions")
+}
