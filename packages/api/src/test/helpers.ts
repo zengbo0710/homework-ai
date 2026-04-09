@@ -29,5 +29,8 @@ export async function registerParent(
     url: '/api/auth/register',
     payload: { email, name, password },
   });
+  if (res.statusCode !== 201) {
+    throw new Error(`registerParent failed: ${res.statusCode} ${res.body}`);
+  }
   return res.json() as { accessToken: string; refreshToken: string; user: { id: string; email: string; name: string } };
 }
