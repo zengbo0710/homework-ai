@@ -26,6 +26,7 @@ export function SubjectDetailPage() {
   const [activeItems, setActiveItems] = useState<WrongAnswer[]>([]);
   const [resolvedItems, setResolvedItems] = useState<WrongAnswer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
@@ -63,6 +64,29 @@ export function SubjectDetailPage() {
     }
   }
 
+  async function handleGeneratePractice() {
+    setGenerating(true);
+    try {
+      const res = await apiClient.post('/practice/generate', {
+        childId,
+        subject,
+        source: tab === 'active' ? 'active' : 'resolved',
+        multiplier: 2,
+      });
+      navigate(`/practice/${res.data.id}`);
+    } catch (err: any) {
+      if (err.response?.status === 402) {
+        alert('Insufficient tokens. Please purchase more tokens.');
+      } else if (err.response?.status === 400 && err.response?.data?.error === 'no_wrong_answers') {
+        alert('No wrong answers found for this subject and filter.');
+      } else {
+        alert('Failed to generate practice. Please try again.');
+      }
+    } finally {
+      setGenerating(false);
+    }
+  }
+
   async function remove(id: string) {
     setActiveItems((prev) => prev.filter((w) => w.id !== id));
     setResolvedItems((prev) => prev.filter((w) => w.id !== id));
@@ -96,6 +120,14 @@ export function SubjectDetailPage() {
           Resolved ({resolvedItems.length})
         </button>
       </div>
+
+      <button
+        onClick={handleGeneratePractice}
+        disabled={generating || items.length === 0}
+        className="w-full py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg disabled:opacity-50 mb-4"
+      >
+        {generating ? 'Generating…' : 'Generate Practice'}
+      </button>
 
       {loading && <p className="text-gray-400 text-sm">Loading…</p>}
 

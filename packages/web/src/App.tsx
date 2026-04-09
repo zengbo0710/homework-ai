@@ -12,6 +12,8 @@ import { EditChildPage } from './pages/EditChildPage';
 import { ScanPage } from './pages/ScanPage';
 import { SubmissionResultPage } from './pages/SubmissionResultPage';
 import { SubjectDetailPage } from './pages/SubjectDetailPage';
+import { PracticePage } from './pages/PracticePage';
+import { PrintPage } from './pages/PrintPage';
 
 export default function App() {
   return (
@@ -29,6 +31,8 @@ export default function App() {
             <Route path="/scan/:childId" element={<ScanPage />} />
             <Route path="/submissions/:id" element={<SubmissionResultPage />} />
             <Route path="/subjects/:childId/:subject" element={<SubjectDetailPage />} />
+            <Route path="/practice/:sessionId" element={<PracticePage />} />
+            <Route path="/practice/:sessionId/print" element={<PrintPage />} />
           </Route>
         </Route>
       </Routes>
