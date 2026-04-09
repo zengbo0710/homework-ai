@@ -6,7 +6,7 @@ import App from '../App';
 describe('App routing', () => {
   it('renders Login heading at /login', () => {
     render(
-      <MemoryRouter initialEntries={['/login']}>
+      <MemoryRouter initialEntries={['/login']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <App />
       </MemoryRouter>
     );
@@ -15,7 +15,7 @@ describe('App routing', () => {
 
   it('renders Register heading at /register', () => {
     render(
-      <MemoryRouter initialEntries={['/register']}>
+      <MemoryRouter initialEntries={['/register']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <App />
       </MemoryRouter>
     );

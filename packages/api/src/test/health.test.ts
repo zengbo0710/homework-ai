@@ -1,8 +1,13 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { FastifyInstance } from 'fastify';
 import { buildApp } from '../app';
 
 describe('GET /api/health', () => {
-  const app = buildApp();
+  let app: FastifyInstance;
+
+  beforeEach(() => {
+    app = buildApp();
+  });
 
   afterEach(async () => {
     await app.close();

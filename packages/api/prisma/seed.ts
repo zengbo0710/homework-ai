@@ -19,9 +19,9 @@ async function main() {
     create: {
       key: 'token_packages',
       value: [
-        { id: 'starter', tokens: 10, price_cents: 199, currency: 'USD' },
-        { id: 'standard', tokens: 50, price_cents: 799, currency: 'USD' },
-        { id: 'bulk', tokens: 200, price_cents: 2499, currency: 'USD' },
+        { id: 'starter', tokens: 10, priceCents: 199, currency: 'USD' },
+        { id: 'standard', tokens: 50, priceCents: 799, currency: 'USD' },
+        { id: 'bulk', tokens: 200, priceCents: 2499, currency: 'USD' },
       ],
       description: 'Available token purchase packages',
     },
