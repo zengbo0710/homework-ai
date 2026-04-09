@@ -1,18 +1,30 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
 import { AppShell } from './components/AppShell';
+import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
-import { DashboardPage } from './pages/DashboardPage';
+import { ChildSelectorPage } from './pages/ChildSelectorPage';
+import { ChildDashboardPage } from './pages/ChildDashboardPage';
+import { AddChildPage } from './pages/AddChildPage';
+import { EditChildPage } from './pages/EditChildPage';
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Navigate to="/login" replace />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route element={<AppShell />}>
-        <Route path="/dashboard" element={<DashboardPage />} />
-      </Route>
-    </Routes>
+    <AuthProvider>
+      <Routes>
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route element={<ProtectedRoute />}>
+          <Route element={<AppShell />}>
+            <Route path="/dashboard" element={<ChildSelectorPage />} />
+            <Route path="/dashboard/:childId" element={<ChildDashboardPage />} />
+            <Route path="/children/new" element={<AddChildPage />} />
+            <Route path="/children/:id/edit" element={<EditChildPage />} />
+          </Route>
+        </Route>
+      </Routes>
+    </AuthProvider>
   );
 }
