@@ -12,6 +12,19 @@ describe('Token routes', () => {
     app = buildApp();
     await app.ready();
     await cleanDb();
+    // Seed token_packages so GET /api/tokens/packages has data
+    await prisma.systemConfig.upsert({
+      where: { key: 'token_packages' },
+      update: {},
+      create: {
+        key: 'token_packages',
+        value: [
+          { id: 'starter', tokens: 10, priceCents: 199, currency: 'USD' },
+          { id: 'standard', tokens: 50, priceCents: 799, currency: 'USD' },
+        ],
+        description: 'Available token purchase packages',
+      },
+    });
     const auth = await registerParent(app);
     accessToken = auth.accessToken;
     parentId = auth.user.id;

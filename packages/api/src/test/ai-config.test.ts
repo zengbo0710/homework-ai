@@ -3,9 +3,12 @@ import { prisma, cleanDb } from './helpers';
 import { getAiConfig, clearAiConfigCache } from '../lib/ai-config';
 
 describe('getAiConfig', () => {
+  const AI_KEYS = ['ai_model', 'ai_max_tokens', 'ai_temperature', 'ai_provider'];
+
   beforeEach(async () => {
     await cleanDb();
     clearAiConfigCache();
+    await prisma.systemConfig.deleteMany({ where: { key: { in: AI_KEYS } } });
     await prisma.systemConfig.createMany({
       data: [
         { key: 'ai_model', value: 'gpt-4o-mini' },
@@ -27,7 +30,7 @@ describe('getAiConfig', () => {
   });
 
   it('returns defaults when keys are missing', async () => {
-    await prisma.systemConfig.deleteMany();
+    await prisma.systemConfig.deleteMany({ where: { key: { in: AI_KEYS } } });
     clearAiConfigCache();
     const config = await getAiConfig(prisma);
     expect(config.model).toBe('gpt-4o-mini');
