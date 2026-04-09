@@ -47,6 +47,30 @@ async function main() {
     },
   });
 
+  await prisma.systemConfig.upsert({
+    where: { key: 'ai_provider' },
+    update: {},
+    create: { key: 'ai_provider', value: 'openai', description: 'AI provider identifier' },
+  });
+
+  await prisma.systemConfig.upsert({
+    where: { key: 'ai_model' },
+    update: {},
+    create: { key: 'ai_model', value: 'gpt-4o-mini', description: 'OpenAI model name' },
+  });
+
+  await prisma.systemConfig.upsert({
+    where: { key: 'ai_max_tokens' },
+    update: {},
+    create: { key: 'ai_max_tokens', value: 4096, description: 'Max completion tokens per AI call' },
+  });
+
+  await prisma.systemConfig.upsert({
+    where: { key: 'ai_temperature' },
+    update: {},
+    create: { key: 'ai_temperature', value: 0.1, description: 'Sampling temperature for AI calls' },
+  });
+
   console.log('Seed complete.');
 }
 
