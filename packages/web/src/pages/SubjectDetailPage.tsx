@@ -122,6 +122,13 @@ export function SubjectDetailPage() {
       </div>
 
       <button
+        onClick={() => navigate(`/reports/${childId}/${subject}`)}
+        className="w-full py-2 text-sm font-medium bg-purple-600 text-white rounded-lg mb-2"
+      >
+        View Weakness Report
+      </button>
+
+      <button
         onClick={handleGeneratePractice}
         disabled={generating || items.length === 0}
         className="w-full py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg disabled:opacity-50 mb-4"

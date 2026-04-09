@@ -14,6 +14,7 @@ import { SubmissionResultPage } from './pages/SubmissionResultPage';
 import { SubjectDetailPage } from './pages/SubjectDetailPage';
 import { PracticePage } from './pages/PracticePage';
 import { PrintPage } from './pages/PrintPage';
+import { WeaknessReportPage } from './pages/WeaknessReportPage';
 
 export default function App() {
   return (
@@ -33,6 +34,7 @@ export default function App() {
             <Route path="/subjects/:childId/:subject" element={<SubjectDetailPage />} />
             <Route path="/practice/:sessionId" element={<PracticePage />} />
             <Route path="/practice/:sessionId/print" element={<PrintPage />} />
+            <Route path="/reports/:childId/:subject" element={<WeaknessReportPage />} />
           </Route>
         </Route>
       </Routes>

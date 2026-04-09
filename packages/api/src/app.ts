@@ -11,6 +11,7 @@ import { tokenRoutes } from './routes/tokens';
 import { submissionRoutes } from './routes/submissions';
 import { wrongAnswerRoutes } from './routes/wrong-answers';
 import { practiceRoutes } from './routes/practice';
+import { reportRoutes } from './routes/reports';
 import { uploadsDir, submissionsDir } from './config';
 
 export { uploadsDir };
@@ -42,5 +43,6 @@ export function buildApp(): FastifyInstance {
   app.register(submissionRoutes);
   app.register(wrongAnswerRoutes);
   app.register(practiceRoutes);
+  app.register(reportRoutes);
   return app;
 }
