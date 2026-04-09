@@ -4,6 +4,9 @@ import { FastifyInstance } from 'fastify';
 export const prisma = new PrismaClient();
 
 export async function cleanDb(): Promise<void> {
+  await prisma.systemConfig.deleteMany({
+    where: { key: { in: ['ai_model', 'ai_max_tokens', 'ai_temperature', 'ai_provider'] } },
+  });
   await prisma.refreshToken.deleteMany();
   await prisma.practiceSessionSource.deleteMany();
   await prisma.practiceQuestion.deleteMany();
