@@ -88,7 +88,7 @@ describe('Auth routes', () => {
   });
 
   describe('POST /api/auth/refresh', () => {
-    it('returns new accessToken for valid refreshToken', async () => {
+    it('returns new accessToken and new refreshToken for valid refreshToken', async () => {
       const { refreshToken } = await registerParent(app, 'refresh@example.com');
       const res = await app.inject({
         method: 'POST',
@@ -96,8 +96,27 @@ describe('Auth routes', () => {
         payload: { refreshToken },
       });
       expect(res.statusCode).toBe(200);
-      expect(res.json().accessToken).toBeDefined();
-      expect(res.json().user.email).toBe('refresh@example.com');
+      const body = res.json();
+      expect(body.accessToken).toBeDefined();
+      expect(body.refreshToken).toBeDefined();
+      expect(body.refreshToken).not.toBe(refreshToken);
+      expect(body.user.email).toBe('refresh@example.com');
+    });
+
+    it('invalidates old refreshToken after rotation', async () => {
+      const { refreshToken } = await registerParent(app, 'rotate@example.com');
+      await app.inject({
+        method: 'POST',
+        url: '/api/auth/refresh',
+        payload: { refreshToken },
+      });
+      // Old token should now be invalid
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/auth/refresh',
+        payload: { refreshToken },
+      });
+      expect(res.statusCode).toBe(401);
     });
 
     it('returns 401 for unknown refreshToken', async () => {

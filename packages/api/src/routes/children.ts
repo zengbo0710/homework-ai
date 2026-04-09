@@ -75,6 +75,9 @@ export async function childrenRoutes(app: FastifyInstance): Promise<void> {
     if (body.name !== undefined && body.name.trim() === '') {
       return reply.status(400).send({ error: 'name_cannot_be_empty' });
     }
+    if (body.gradeLevel !== undefined && !(body.gradeLevel in GRADE_MAP)) {
+      return reply.status(400).send({ error: 'invalid_grade_level' });
+    }
 
     const updated = await app.prisma.child.update({
       where: { id },

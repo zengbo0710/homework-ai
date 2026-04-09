@@ -13,6 +13,9 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     if (!body.email || !body.name || !body.password) {
       return reply.status(400).send({ error: 'missing_fields' });
     }
+    if (body.password.length < 8) {
+      return reply.status(400).send({ error: 'password_too_short' });
+    }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
       return reply.status(400).send({ error: 'invalid_email' });
     }
@@ -87,9 +90,20 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       if (record) await app.prisma.refreshToken.delete({ where: { token: body.refreshToken } });
       return reply.status(401).send({ error: 'invalid_refresh_token' });
     }
+    // Rotate: delete old token, issue new one
+    await app.prisma.refreshToken.delete({ where: { token: body.refreshToken } });
+    const newRefreshToken = uuidv4();
+    await app.prisma.refreshToken.create({
+      data: {
+        token: newRefreshToken,
+        parentId: record.parent.id,
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
+    });
     const accessToken = signAccessToken(record.parent.id);
     return reply.status(200).send({
       accessToken,
+      refreshToken: newRefreshToken,
       user: { id: record.parent.id, email: record.parent.email, name: record.parent.name },
     });
   });

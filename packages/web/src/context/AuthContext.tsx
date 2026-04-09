@@ -39,7 +39,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .post('/auth/refresh', { refreshToken: stored })
       .then((res) => {
         if (cancelled) return;
-        const { accessToken: at, user: u } = res.data;
+        const { accessToken: at, refreshToken: newRt, user: u } = res.data;
+        if (newRt) localStorage.setItem('refreshToken', newRt);
         setAccessToken(at);
         setAccessTokenState(at);
         setUser(u);
