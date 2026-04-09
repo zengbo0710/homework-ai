@@ -8,7 +8,7 @@ import { authenticate } from '../plugins/authenticate';
 import { submissionsDir } from '../config';
 import { deductToken, refundToken } from '../lib/token-helpers';
 import { getAiConfig } from '../lib/ai-config';
-import { getOpenAIClient } from '../lib/openai';
+import { getAIClient } from '../lib/openai';
 import { analyzeHomework } from '../lib/ai-analysis';
 
 export async function submissionRoutes(app: FastifyInstance): Promise<void> {
@@ -94,7 +94,7 @@ export async function submissionRoutes(app: FastifyInstance): Promise<void> {
     // Call AI
     try {
       const aiConfig = await getAiConfig(app.prisma);
-      const client = getOpenAIClient();
+      const client = getAIClient(aiConfig.provider);
       const result = await analyzeHomework(client, processedBuffers, child.grade, aiConfig);
 
       await app.prisma.aiResponse.create({

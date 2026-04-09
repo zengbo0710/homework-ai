@@ -3,7 +3,7 @@ import { FastifyInstance } from 'fastify';
 import { authenticate } from '../plugins/authenticate';
 import { deductToken, refundToken } from '../lib/token-helpers';
 import { getAiConfig } from '../lib/ai-config';
-import { getOpenAIClient } from '../lib/openai';
+import { getAIClient } from '../lib/openai';
 import { analyzeWeaknesses } from '../lib/weakness-analyzer';
 
 export async function reportRoutes(app: FastifyInstance): Promise<void> {
@@ -39,7 +39,7 @@ export async function reportRoutes(app: FastifyInstance): Promise<void> {
 
     try {
       const aiConfig = await getAiConfig(app.prisma);
-      const client = getOpenAIClient();
+      const client = getAIClient(aiConfig.provider);
       const result = await analyzeWeaknesses(client, wrongAnswers, child.grade, aiConfig);
 
       const report = await app.prisma.weaknessReport.create({

@@ -20,8 +20,8 @@ export function buildApp(): FastifyInstance {
   if (!process.env.JWT_SECRET) {
     throw new Error('JWT_SECRET environment variable is required');
   }
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error('OPENAI_API_KEY environment variable is required');
+  if (!process.env.OPENAI_API_KEY && !process.env.DEEPSEEK_API_KEY) {
+    throw new Error('OPENAI_API_KEY or DEEPSEEK_API_KEY environment variable is required');
   }
   const app = Fastify({ logger: false });
 
