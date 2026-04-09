@@ -7,6 +7,7 @@ import { prismaPlugin } from './plugins/prisma';
 import { healthRoute } from './routes/health';
 import { authRoutes } from './routes/auth';
 import { childrenRoutes } from './routes/children';
+import { tokenRoutes } from './routes/tokens';
 import { uploadsDir } from './config';
 
 export { uploadsDir };
@@ -30,5 +31,6 @@ export function buildApp(): FastifyInstance {
   app.register(healthRoute);
   app.register(authRoutes);
   app.register(childrenRoutes);
+  app.register(tokenRoutes);
   return app;
 }
