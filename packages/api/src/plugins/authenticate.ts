@@ -14,7 +14,10 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
   }
   const token = authHeader.slice(7);
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET!) as { sub: string };
+    const payload = jwt.verify(token, process.env.JWT_SECRET!) as jwt.JwtPayload;
+    if (typeof payload.sub !== 'string' || !payload.sub) {
+      return reply.status(401).send({ error: 'invalid_token' });
+    }
     request.parentId = payload.sub;
   } catch {
     return reply.status(401).send({ error: 'invalid_token' });
