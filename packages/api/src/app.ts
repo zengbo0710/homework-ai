@@ -8,7 +8,8 @@ import { healthRoute } from './routes/health';
 import { authRoutes } from './routes/auth';
 import { childrenRoutes } from './routes/children';
 import { tokenRoutes } from './routes/tokens';
-import { uploadsDir } from './config';
+import { submissionRoutes } from './routes/submissions';
+import { uploadsDir, submissionsDir } from './config';
 
 export { uploadsDir };
 
@@ -18,8 +19,9 @@ export function buildApp(): FastifyInstance {
   }
   const app = Fastify({ logger: false });
 
-  // Ensure uploads dir exists
+  // Ensure uploads dirs exist
   fs.mkdirSync(uploadsDir, { recursive: true });
+  fs.mkdirSync(submissionsDir, { recursive: true });
 
   app.register(multipart);
   app.register(staticFiles, {
@@ -32,5 +34,6 @@ export function buildApp(): FastifyInstance {
   app.register(authRoutes);
   app.register(childrenRoutes);
   app.register(tokenRoutes);
+  app.register(submissionRoutes);
   return app;
 }
