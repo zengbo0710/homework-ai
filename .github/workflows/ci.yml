@@ -82,3 +82,14 @@ jobs:
 
       - name: Test web
         run: npm test --workspace=packages/web
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build API Docker image
+        run: docker build -f packages/api/Dockerfile . -t homework-ai-api
+
+      - name: Build Web Docker image
+        run: docker build -f packages/web/Dockerfile . -t homework-ai-web
