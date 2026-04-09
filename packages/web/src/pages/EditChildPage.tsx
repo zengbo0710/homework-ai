@@ -12,18 +12,27 @@ export function EditChildPage() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    apiClient.get('/children').then((res) => {
-      const child = res.data.find((c: { id: string; name: string; gradeLevel: string; avatarUrl: string | null }) => c.id === id);
-      if (child) {
-        setName(child.name);
-        setGradeLevel(child.gradeLevel);
-        if (child.avatarUrl) setAvatarPreview(child.avatarUrl);
-      }
-    });
+    apiClient
+      .get('/children')
+      .then((res) => {
+        const child = res.data.find(
+          (c: { id: string; name: string; gradeLevel: string; avatarUrl: string | null }) => c.id === id
+        );
+        if (child) {
+          setName(child.name);
+          setGradeLevel(child.gradeLevel);
+          if (child.avatarUrl) setAvatarPreview(child.avatarUrl);
+        } else {
+          setError('Child not found.');
+        }
+      })
+      .catch(() => setError('Failed to load child data.'))
+      .finally(() => setLoadingData(false));
   }, [id]);
 
   function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -53,6 +62,8 @@ export function EditChildPage() {
       setLoading(false);
     }
   }
+
+  if (loadingData) return <div className="p-4">Loading…</div>;
 
   return (
     <div className="p-4 max-w-sm mx-auto">
