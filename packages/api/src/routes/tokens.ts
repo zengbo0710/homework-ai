@@ -21,17 +21,19 @@ export async function tokenRoutes(app: FastifyInstance): Promise<void> {
     return reply.status(501).send({ error: 'not_implemented', message: 'Stripe integration coming soon' });
   });
 
-  // Test-only route to exercise checkTokens middleware
-  app.get(
-    '/api/tokens/test-check',
-    {
-      preHandler: [
-        authenticate,
-        (req, rep) => checkTokens(Number((req.query as { cost?: string }).cost ?? 1))(req, rep),
-      ],
-    },
-    async (_request, reply) => {
-      return reply.send({ ok: true });
-    }
-  );
+  // Test-only route to exercise checkTokens middleware — not registered in production
+  if (process.env.NODE_ENV !== 'production') {
+    app.get(
+      '/api/tokens/test-check',
+      {
+        preHandler: [
+          authenticate,
+          (req, rep) => checkTokens(Number((req.query as { cost?: string }).cost ?? 1))(req, rep),
+        ],
+      },
+      async (_request, reply) => {
+        return reply.send({ ok: true });
+      }
+    );
+  }
 }
