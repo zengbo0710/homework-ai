@@ -13,12 +13,22 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@fastify/multipart": "^10.0.0",
+    "@fastify/static": "^9.1.0",
     "@homework-ai/shared": "*",
     "@prisma/client": "^5.11.0",
-    "fastify": "^4.26.0"
+    "bcrypt": "^6.0.0",
+    "fastify": "^4.26.0",
+    "fastify-plugin": "^5.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "sharp": "^0.34.5",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20.11.0",
+    "@types/uuid": "^10.0.0",
     "dotenv": "^17.4.1",
     "prisma": "^5.11.0",
     "tsx": "^4.7.0",

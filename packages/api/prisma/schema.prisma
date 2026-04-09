@@ -56,6 +56,7 @@ model Parent {
   tokenBalance      TokenBalance?
   tokenTransactions TokenTransaction[]
   children          Child[]
+  refreshTokens     RefreshToken[]
 
   @@map("parents")
 }
@@ -241,4 +242,17 @@ model PracticeQuestion {
   practiceSession PracticeSession @relation(fields: [practiceSessionId], references: [id], onDelete: Cascade)
 
   @@map("practice_questions")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique @db.VarChar(36)
+  parentId  String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  parent Parent @relation(fields: [parentId], references: [id], onDelete: Cascade)
+
+  @@index([parentId])
+  @@map("refresh_tokens")
 }
