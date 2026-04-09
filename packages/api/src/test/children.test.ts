@@ -179,4 +179,48 @@ describe('Children routes', () => {
       expect(res.statusCode).toBe(403);
     });
   });
+
+  describe('POST /api/children/:id/avatar', () => {
+    it('uploads avatar, resizes to JPEG, and returns avatarUrl', async () => {
+      const create = await app.inject({
+        method: 'POST',
+        url: '/api/children',
+        headers: authHeader(),
+        payload: { name: 'Alice', gradeLevel: 'P1' },
+      });
+      const { id } = create.json();
+
+      // Minimal valid 1x1 white JPEG (base64) — generated with sharp
+      const jpegBytes = Buffer.from(
+        '/9j/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYW' +
+        'ICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgo' +
+        'KCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIA' +
+        'AhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAj/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QA' +
+        'FAEBAAAAAAAAAAAAAAAAAAAAAP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/' +
+        'AKpAB//Z',
+        'base64'
+      );
+
+      // Use multipart form — send as raw buffer with multipart content type
+      const boundary = '----TestBoundary';
+      const body = Buffer.concat([
+        Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="avatar"; filename="test.jpg"\r\nContent-Type: image/jpeg\r\n\r\n`),
+        jpegBytes,
+        Buffer.from(`\r\n--${boundary}--\r\n`),
+      ]);
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/children/${id}/avatar`,
+        headers: {
+          ...authHeader(),
+          'content-type': `multipart/form-data; boundary=${boundary}`,
+        },
+        payload: body,
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.json().avatarUrl).toMatch(/^\/uploads\/avatars\/.+\.jpg$/);
+    });
+  });
 });

@@ -1,7 +1,14 @@
 import { FastifyInstance } from 'fastify';
+import path from 'path';
+import fs from 'fs';
+import sharp from 'sharp';
+import { v4 as uuidv4 } from 'uuid';
 import { authenticate } from '../plugins/authenticate';
 
 const GRADE_MAP: Record<string, number> = { P1: 1, P2: 2, P3: 3, P4: 4, P5: 5, P6: 6 };
+
+// Defined here to avoid circular import with app.ts
+const uploadsDir = path.join(__dirname, '..', '..', 'uploads', 'avatars');
 
 function gradeToInt(gradeLevel: string): number {
   const grade = GRADE_MAP[gradeLevel];
@@ -90,5 +97,37 @@ export async function childrenRoutes(app: FastifyInstance): Promise<void> {
 
     await app.prisma.child.delete({ where: { id } });
     return reply.status(204).send();
+  });
+
+  app.post('/api/children/:id/avatar', { preHandler: [authenticate] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    const child = await app.prisma.child.findUnique({ where: { id } });
+    if (!child) return reply.status(404).send({ error: 'not_found' });
+    if (child.parentId !== request.parentId) return reply.status(403).send({ error: 'forbidden' });
+
+    const data = await request.file();
+    if (!data) return reply.status(400).send({ error: 'no_file' });
+
+    const buffer = await data.toBuffer();
+    const filename = `${uuidv4()}.jpg`;
+    const outputPath = path.join(uploadsDir, filename);
+
+    await sharp(buffer)
+      .resize(256, 256, { fit: 'cover' })
+      .jpeg({ quality: 80 })
+      .toFile(outputPath);
+
+    // Delete old avatar file if present
+    if (child.avatarUrl) {
+      const oldFilename = path.basename(child.avatarUrl);
+      const oldPath = path.join(uploadsDir, oldFilename);
+      await fs.promises.unlink(oldPath).catch(() => {});
+    }
+
+    const avatarUrl = `/uploads/avatars/${filename}`;
+    await app.prisma.child.update({ where: { id }, data: { avatarUrl } });
+
+    return reply.send({ avatarUrl });
   });
 }

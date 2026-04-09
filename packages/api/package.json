@@ -13,8 +13,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@fastify/multipart": "^10.0.0",
-    "@fastify/static": "^9.1.0",
+    "@fastify/multipart": "^8.3.1",
+    "@fastify/static": "^7.0.4",
     "@homework-ai/shared": "*",
     "@prisma/client": "^5.11.0",
     "bcrypt": "^6.0.0",
