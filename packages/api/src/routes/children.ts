@@ -4,7 +4,9 @@ import { authenticate } from '../plugins/authenticate';
 const GRADE_MAP: Record<string, number> = { P1: 1, P2: 2, P3: 3, P4: 4, P5: 5, P6: 6 };
 
 function gradeToInt(gradeLevel: string): number {
-  return GRADE_MAP[gradeLevel] ?? 1;
+  const grade = GRADE_MAP[gradeLevel];
+  if (grade === undefined) throw new Error(`Invalid gradeLevel: ${gradeLevel}`);
+  return grade;
 }
 
 function intToGrade(grade: number): string {
@@ -65,11 +67,15 @@ export async function childrenRoutes(app: FastifyInstance): Promise<void> {
     if (!child) return reply.status(404).send({ error: 'not_found' });
     if (child.parentId !== request.parentId) return reply.status(403).send({ error: 'forbidden' });
 
+    if (body.name !== undefined && body.name.trim() === '') {
+      return reply.status(400).send({ error: 'name_cannot_be_empty' });
+    }
+
     const updated = await app.prisma.child.update({
       where: { id },
       data: {
         ...(body.name && { name: body.name }),
-        ...(body.gradeLevel && GRADE_MAP[body.gradeLevel] && { grade: gradeToInt(body.gradeLevel) }),
+        ...(body.gradeLevel && body.gradeLevel in GRADE_MAP && { grade: gradeToInt(body.gradeLevel) }),
       },
     });
     return reply.send(formatChild(updated));
