@@ -6,7 +6,6 @@ import { prisma, cleanDb, registerParent } from './helpers';
 describe('Children routes', () => {
   let app: FastifyInstance;
   let accessToken: string;
-  let parentId: string;
 
   beforeEach(async () => {
     app = buildApp();
@@ -14,7 +13,6 @@ describe('Children routes', () => {
     await cleanDb();
     const auth = await registerParent(app);
     accessToken = auth.accessToken;
-    parentId = auth.user.id;
   });
 
   afterEach(async () => { await app.close(); });

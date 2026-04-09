@@ -62,7 +62,7 @@ export function LoginPage() {
           {loading ? 'Logging in…' : 'Log in'}
         </button>
         <p className="text-sm text-center">
-          Don't have an account? <Link to="/register" className="text-indigo-600 underline">Register</Link>
+          Don&apos;t have an account? <Link to="/register" className="text-indigo-600 underline">Register</Link>
         </p>
       </form>
     </div>
