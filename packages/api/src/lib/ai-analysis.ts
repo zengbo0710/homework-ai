@@ -48,6 +48,12 @@ export async function analyzeHomework(
 5. Tag each question with a topic (e.g. "fractions", "grammar", "photosynthesis")
 6. Return ONLY a valid JSON object matching the schema below. No markdown, no preamble.
 
+IMPORTANT — questionText must always be self-contained with full context:
+- For standalone questions: copy the full question text as written.
+- For word problems: include the ENTIRE passage/scenario, then the specific sub-question. A reader must be able to understand the question without seeing the image.
+- For sub-questions (a), (b), (c)…: always prepend the parent question's scenario/stem so the sub-question makes sense on its own. e.g. "There were 192 pupils and 24 teachers on a trip. The ratio of pupils to teachers was 8:1. (b) What was the new number of pupils per teacher if 5 more teachers joined?"
+- Never truncate. If a word problem is long, include it in full.
+
 Schema:
 {
   "subject": "math|english|science|chinese|higher_chinese",
@@ -59,7 +65,7 @@ Schema:
   "questions": [{
     "questionNumber": number,
     "imageOrder": number,
-    "questionText": "The question as written",
+    "questionText": "Full self-contained question including any necessary context/scenario",
     "childAnswer": "What the child wrote (null if blank)",
     "correctAnswer": "The correct answer",
     "status": "correct|wrong|partial_correct",
