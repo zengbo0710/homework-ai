@@ -45,7 +45,13 @@ export async function wrongAnswerRoutes(app: FastifyInstance): Promise<void> {
     };
 
     const [data, total] = await Promise.all([
-      app.prisma.wrongAnswer.findMany({ where, orderBy: { createdAt: 'desc' }, skip, take: limit }),
+      app.prisma.wrongAnswer.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+        include: { submission: { include: { images: { orderBy: { sortOrder: 'asc' } } } } },
+      }),
       app.prisma.wrongAnswer.count({ where }),
     ]);
 
@@ -54,12 +60,15 @@ export async function wrongAnswerRoutes(app: FastifyInstance): Promise<void> {
         id: wa.id,
         subject: wa.subject,
         questionNumber: wa.questionNumber,
+        imageOrder: wa.imageOrder,
         questionText: wa.questionText,
         childAnswer: wa.childAnswer,
         correctAnswer: wa.correctAnswer,
         status: wa.status,
         explanation: wa.explanation,
         topic: wa.topic,
+        figureImageUrl: wa.figureImageUrl,
+        pageImageUrl: wa.submission.images.find((img) => img.sortOrder === wa.imageOrder)?.imageUrl ?? null,
         resolvedAt: wa.resolvedAt,
         createdAt: wa.createdAt,
       })),

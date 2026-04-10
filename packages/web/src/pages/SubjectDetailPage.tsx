@@ -11,7 +11,28 @@ interface WrongAnswer {
   status: 'wrong' | 'partial_correct';
   explanation: string;
   topic: string | null;
+  figureImageUrl: string | null;
+  pageImageUrl: string | null;
   resolvedAt: string | null;
+}
+
+function QuestionImage({ imageUrl }: { imageUrl: string }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="mb-3">
+      <img
+        src={imageUrl}
+        alt="Homework page"
+        onClick={() => setExpanded((v) => !v)}
+        className={`rounded-lg border border-gray-200 cursor-pointer w-full object-contain transition-all ${
+          expanded ? 'max-h-[600px]' : 'max-h-32'
+        }`}
+      />
+      <p className="text-xs text-gray-400 text-center mt-1">
+        {expanded ? 'Tap to collapse' : 'Tap to expand'}
+      </p>
+    </div>
+  );
 }
 
 const SUBJECT_LABELS: Record<string, string> = {
@@ -155,6 +176,17 @@ export function SubjectDetailPage() {
                 {wa.status === 'wrong' ? 'Wrong' : 'Partial'}
               </span>
             </div>
+            {/* Cropped figure — shown when AI identified a diagram */}
+            {wa.figureImageUrl && (
+              <img
+                src={wa.figureImageUrl}
+                alt="Figure"
+                className="rounded-lg border border-gray-200 w-full object-contain mb-3 max-h-64"
+              />
+            )}
+            {/* Full page — collapsible fallback */}
+            {!wa.figureImageUrl && wa.pageImageUrl && <QuestionImage imageUrl={wa.pageImageUrl} />}
+
             <p className="text-sm font-medium mb-1">{wa.questionText}</p>
             {wa.childAnswer && <p className="text-sm text-red-700">Answered: {wa.childAnswer}</p>}
             <p className="text-sm text-green-700">Correct: {wa.correctAnswer}</p>
