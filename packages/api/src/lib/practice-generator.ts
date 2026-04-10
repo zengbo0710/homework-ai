@@ -33,10 +33,15 @@ export async function generatePracticeQuestions(
 Generate exactly ${totalToGenerate} practice questions total (${multiplier} per source question).
 Return ONLY a valid JSON object. No markdown, no preamble.
 
+IMPORTANT — questionText must always be fully self-contained:
+- Include all numbers, context, and scenario needed to solve the question.
+- For word problems: write the complete passage plus the specific question. A student must be able to attempt it without any other reference.
+- Never write a partial sub-question like "(b) What is the new ratio?" — always include the full scenario that gives the necessary values.
+
 Schema:
 {
   "questions": [{
-    "questionText": "The practice question",
+    "questionText": "Complete self-contained question with all context and given values",
     "answer": "The correct answer",
     "explanation": "Brief explanation of the answer",
     "topic": "Topic tag matching the source question",
