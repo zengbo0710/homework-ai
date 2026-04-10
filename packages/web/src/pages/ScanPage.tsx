@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { apiClient } from '../lib/api';
 
@@ -12,7 +12,18 @@ export function ScanPage() {
   const { childId } = useParams<{ childId: string }>();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [previews, setPreviews] = useState<Preview[]>([]);
+  const [hasCamera, setHasCamera] = useState(false);
+
+  useEffect(() => {
+    // Show camera button only if the device has a camera
+    if (navigator.mediaDevices?.enumerateDevices) {
+      navigator.mediaDevices.enumerateDevices().then((devices) => {
+        setHasCamera(devices.some((d) => d.kind === 'videoinput'));
+      }).catch(() => setHasCamera(false));
+    }
+  }, []);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
 
@@ -86,27 +97,35 @@ export function ScanPage() {
         )}
       </div>
 
+      {/* Hidden file picker — gallery / files */}
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*"
         multiple
         className="hidden"
-        onChange={(e) => handleFiles(e.target.files)}
+        onChange={(e) => { handleFiles(e.target.files); e.target.value = ''; }}
       />
 
-      {/* Camera button for mobile */}
-      <button
-        onClick={() => {
-          if (fileInputRef.current) {
-            fileInputRef.current.setAttribute('capture', 'environment');
-            fileInputRef.current.click();
-          }
-        }}
-        className="w-full mb-3 py-3 border-2 border-indigo-300 text-indigo-600 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-indigo-50"
-      >
-        📷 Take photo
-      </button>
+      {/* Hidden camera input — opens camera directly */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => { handleFiles(e.target.files); e.target.value = ''; }}
+      />
+
+      {/* Camera button — shown when a camera is detected */}
+      {hasCamera && (
+        <button
+          onClick={() => cameraInputRef.current?.click()}
+          className="w-full mb-3 py-3 border-2 border-indigo-300 text-indigo-600 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-indigo-50"
+        >
+          📷 Take photo
+        </button>
+      )}
 
       {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
 

@@ -79,6 +79,7 @@ Schema:
     model: config.model,
     max_tokens: config.maxTokens,
     temperature: config.temperature,
+    response_format: { type: 'json_object' },
     messages: [
       { role: 'system', content: systemPrompt },
       {
