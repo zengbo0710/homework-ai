@@ -1,3 +1,5 @@
+import { config } from 'dotenv';
+config(); // loads packages/api/.env when running locally
 import { buildApp } from './app';
 
 const app = buildApp();

@@ -55,11 +55,12 @@ Schema:
   });
 
   const raw = response.choices[0]?.message?.content ?? '';
+  const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
   let parsed: WeaknessAnalysisResult;
   try {
-    parsed = JSON.parse(raw);
+    parsed = JSON.parse(cleaned);
   } catch {
-    throw new Error(`AI returned invalid JSON: ${raw.slice(0, 200)}`);
+    throw new Error(`AI returned invalid JSON: ${cleaned.slice(0, 200)}`);
   }
   return parsed;
 }

@@ -29,7 +29,7 @@ export function buildApp(): FastifyInstance {
   fs.mkdirSync(uploadsDir, { recursive: true });
   fs.mkdirSync(submissionsDir, { recursive: true });
 
-  app.register(multipart);
+  app.register(multipart, { limits: { fileSize: 20 * 1024 * 1024 } }); // 20 MB per file
   app.register(staticFiles, {
     root: path.join(__dirname, '..', 'uploads'),
     prefix: '/uploads/',

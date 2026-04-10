@@ -107,6 +107,7 @@ export async function practiceRoutes(app: FastifyInstance): Promise<void> {
         generatedAt: session.generatedAt,
       });
     } catch (err) {
+      console.error('[practice] generation error:', err);
       await refundToken(app.prisma, request.parentId, session.id, 'practice').catch(() => {});
       await app.prisma.practiceSession.delete({ where: { id: session.id } }).catch(() => {});
       return reply.status(500).send({ error: 'generation_failed' });
