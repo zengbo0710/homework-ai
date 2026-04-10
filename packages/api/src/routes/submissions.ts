@@ -169,6 +169,7 @@ export async function submissionRoutes(app: FastifyInstance): Promise<void> {
         wrongAnswers: updated!.wrongAnswers.map((wa) => ({
           id: wa.id,
           questionNumber: wa.questionNumber,
+          imageOrder: wa.imageOrder,
           questionText: wa.questionText,
           childAnswer: wa.childAnswer,
           correctAnswer: wa.correctAnswer,
@@ -230,6 +231,7 @@ export async function submissionRoutes(app: FastifyInstance): Promise<void> {
       wrongAnswers: submission.wrongAnswers.map((wa) => ({
         id: wa.id,
         questionNumber: wa.questionNumber,
+        imageOrder: wa.imageOrder,
         questionText: wa.questionText,
         childAnswer: wa.childAnswer,
         correctAnswer: wa.correctAnswer,

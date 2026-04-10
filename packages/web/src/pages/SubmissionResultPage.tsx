@@ -2,9 +2,16 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { apiClient } from '../lib/api';
 
+interface SubmissionImage {
+  id: string;
+  imageUrl: string;
+  sortOrder: number;
+}
+
 interface WrongAnswer {
   id: string;
   questionNumber: number;
+  imageOrder: number;
   questionText: string;
   childAnswer: string | null;
   correctAnswer: string;
@@ -19,6 +26,7 @@ interface SubmissionResult {
   detectedSubject: string | null;
   imageCount: number;
   errorMessage: string | null;
+  images: SubmissionImage[];
   aiResponse: {
     summary: string | null;
     totalQuestions: number | null;
@@ -39,12 +47,30 @@ const STATUS_LABEL: Record<string, string> = {
   partial_correct: 'Partial',
 };
 
+function QuestionImage({ imageUrl }: { imageUrl: string }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="mb-3">
+      <img
+        src={imageUrl}
+        alt="Homework page"
+        onClick={() => setExpanded((v) => !v)}
+        className={`rounded-lg border border-gray-200 cursor-pointer w-full object-contain transition-all ${
+          expanded ? 'max-h-[600px]' : 'max-h-32'
+        }`}
+      />
+      <p className="text-xs text-gray-400 text-center mt-1">
+        {expanded ? 'Tap to collapse' : 'Tap to expand'}
+      </p>
+    </div>
+  );
+}
+
 export function SubmissionResultPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [result, setResult] = useState<SubmissionResult | null>(null);
   const [loading, setLoading] = useState(true);
-  const [polling, setPolling] = useState(false);
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
@@ -54,13 +80,11 @@ export function SubmissionResultPage() {
         const res = await apiClient.get(`/submissions/${id}`);
         setResult(res.data);
         if (res.data.status === 'pending' || res.data.status === 'processing') {
-          setPolling(true);
           interval = setInterval(async () => {
             const r = await apiClient.get(`/submissions/${id}`);
             setResult(r.data);
             if (r.data.status !== 'pending' && r.data.status !== 'processing') {
               clearInterval(interval);
-              setPolling(false);
             }
           }, 3000);
         }
@@ -79,6 +103,11 @@ export function SubmissionResultPage() {
   if (!result) return <div className="p-4 text-red-600">Result not found.</div>;
 
   const isPending = result.status === 'pending' || result.status === 'processing';
+
+  // Map sortOrder → imageUrl for quick lookup
+  const imageByOrder = Object.fromEntries(
+    (result.images ?? []).map((img) => [img.sortOrder, img.imageUrl])
+  );
 
   return (
     <div className="p-4 max-w-lg mx-auto">
@@ -122,22 +151,33 @@ export function SubmissionResultPage() {
           {result.wrongAnswers.length > 0 && (
             <div className="space-y-3">
               <h2 className="font-semibold text-gray-800">Needs attention ({result.wrongAnswers.length})</h2>
-              {result.wrongAnswers.map((wa) => (
-                <div key={wa.id} className={`border rounded-xl p-4 ${STATUS_COLOR[wa.status] ?? ''}`}>
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <span className="text-xs font-semibold text-gray-500">Q{wa.questionNumber}{wa.topic ? ` · ${wa.topic}` : ''}</span>
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${wa.status === 'wrong' ? 'bg-red-200 text-red-800' : 'bg-yellow-200 text-yellow-800'}`}>
-                      {STATUS_LABEL[wa.status]}
-                    </span>
+              {result.wrongAnswers.map((wa) => {
+                const imgUrl = imageByOrder[wa.imageOrder];
+                return (
+                  <div key={wa.id} className={`border rounded-xl p-4 ${STATUS_COLOR[wa.status] ?? ''}`}>
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <span className="text-xs font-semibold text-gray-500">
+                        Q{wa.questionNumber}{wa.topic ? ` · ${wa.topic}` : ''}
+                      </span>
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                        wa.status === 'wrong' ? 'bg-red-200 text-red-800' : 'bg-yellow-200 text-yellow-800'
+                      }`}>
+                        {STATUS_LABEL[wa.status]}
+                      </span>
+                    </div>
+
+                    {/* Source image — collapsible */}
+                    {imgUrl && <QuestionImage imageUrl={imgUrl} />}
+
+                    <p className="text-sm font-medium mb-1">{wa.questionText}</p>
+                    {wa.childAnswer && (
+                      <p className="text-sm text-red-700">Child answered: {wa.childAnswer}</p>
+                    )}
+                    <p className="text-sm text-green-700">Correct: {wa.correctAnswer}</p>
+                    <p className="text-xs text-gray-600 mt-2 italic">{wa.explanation}</p>
                   </div>
-                  <p className="text-sm font-medium mb-1">{wa.questionText}</p>
-                  {wa.childAnswer && (
-                    <p className="text-sm text-red-700">Child answered: {wa.childAnswer}</p>
-                  )}
-                  <p className="text-sm text-green-700">Correct: {wa.correctAnswer}</p>
-                  <p className="text-xs text-gray-600 mt-2 italic">{wa.explanation}</p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
