@@ -11,6 +11,7 @@ export interface AiQuestion {
   explanation: string;
   topic: string | null;
   difficulty: string | null;
+  figureRegion?: { x: number; y: number; w: number; h: number } | null;
 }
 
 export interface AiAnalysisResult {
@@ -71,9 +72,12 @@ Schema:
     "status": "correct|wrong|partial_correct",
     "explanation": "Why the answer is wrong/partial (empty string if correct)",
     "topic": "Topic tag (e.g. addition, grammar, forces)",
-    "difficulty": "easy|medium|hard"
+    "difficulty": "easy|medium|hard",
+    "figureRegion": {"x": 0.0, "y": 0.0, "w": 1.0, "h": 0.3} or null
   }]
-}`;
+}
+
+figureRegion is a normalized bounding box (0–1) of the diagram, table, or figure the question directly references in that image. Include it whenever the question cannot be answered without seeing the visual (e.g. a flower diagram, data table, graph, map). Set to null if the question is purely text-based. x/y = top-left corner, w/h = width/height, all as fractions of the image dimensions.`;
 
   const response = await client.chat.completions.create({
     model: config.model,

@@ -190,6 +190,7 @@ model WrongAnswer {
   explanation    String            @db.Text
   topic          String?           @db.VarChar(100)
   difficulty     String?           @db.VarChar(20)
+  figureImageUrl String?           @db.VarChar(500)
   resolvedAt     DateTime?
   createdAt      DateTime          @default(now())
 

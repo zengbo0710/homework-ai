@@ -111,9 +111,33 @@ export async function submissionRoutes(app: FastifyInstance): Promise<void> {
         },
       });
 
-      // Save only wrong + partial_correct to DB
+      // Save only wrong + partial_correct to DB (with optional cropped figure image)
       const toSave = result.questions.filter((q) => q.status !== 'correct');
       for (const q of toSave) {
+        let figureImageUrl: string | null = null;
+
+        if (q.figureRegion && q.imageOrder >= 1 && q.imageOrder <= processedBuffers.length) {
+          try {
+            const buf = processedBuffers[q.imageOrder - 1];
+            const meta = await sharp(buf).metadata();
+            const imgW = meta.width ?? 800;
+            const imgH = meta.height ?? 1000;
+            const left = Math.max(0, Math.round(q.figureRegion.x * imgW));
+            const top = Math.max(0, Math.round(q.figureRegion.y * imgH));
+            const width = Math.min(imgW - left, Math.max(1, Math.round(q.figureRegion.w * imgW)));
+            const height = Math.min(imgH - top, Math.max(1, Math.round(q.figureRegion.h * imgH)));
+            const cropBuf = await sharp(buf)
+              .extract({ left, top, width, height })
+              .jpeg({ quality: 85 })
+              .toBuffer();
+            const cropFilename = `${uuidv4()}.jpg`;
+            fs.writeFileSync(path.join(submissionsDir, cropFilename), cropBuf);
+            figureImageUrl = `/uploads/submissions/${cropFilename}`;
+          } catch (cropErr) {
+            console.warn('[submissions] figure_crop_failed:', cropErr);
+          }
+        }
+
         await app.prisma.wrongAnswer.create({
           data: {
             submissionId: submission.id,
@@ -128,6 +152,7 @@ export async function submissionRoutes(app: FastifyInstance): Promise<void> {
             explanation: q.explanation,
             topic: q.topic ?? null,
             difficulty: q.difficulty ?? null,
+            figureImageUrl,
           },
         });
       }
@@ -176,6 +201,7 @@ export async function submissionRoutes(app: FastifyInstance): Promise<void> {
           status: wa.status,
           explanation: wa.explanation,
           topic: wa.topic,
+          figureImageUrl: wa.figureImageUrl,
           resolvedAt: wa.resolvedAt,
         })),
         createdAt: updated!.createdAt,
@@ -238,6 +264,7 @@ export async function submissionRoutes(app: FastifyInstance): Promise<void> {
         status: wa.status,
         explanation: wa.explanation,
         topic: wa.topic,
+        figureImageUrl: wa.figureImageUrl,
         resolvedAt: wa.resolvedAt,
       })),
       createdAt: submission.createdAt,

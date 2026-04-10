@@ -18,6 +18,7 @@ interface WrongAnswer {
   status: 'wrong' | 'partial_correct';
   explanation: string;
   topic: string | null;
+  figureImageUrl: string | null;
 }
 
 interface SubmissionResult {
@@ -166,8 +167,17 @@ export function SubmissionResultPage() {
                       </span>
                     </div>
 
-                    {/* Source image — collapsible */}
-                    {imgUrl && <QuestionImage imageUrl={imgUrl} />}
+                    {/* Cropped figure — shown when AI identified a diagram/table */}
+                    {wa.figureImageUrl && (
+                      <img
+                        src={wa.figureImageUrl}
+                        alt="Figure"
+                        className="rounded-lg border border-gray-200 w-full object-contain mb-3 max-h-64"
+                      />
+                    )}
+
+                    {/* Full page — collapsible fallback when no cropped figure */}
+                    {!wa.figureImageUrl && imgUrl && <QuestionImage imageUrl={imgUrl} />}
 
                     <p className="text-sm font-medium mb-1">{wa.questionText}</p>
                     {wa.childAnswer && (
