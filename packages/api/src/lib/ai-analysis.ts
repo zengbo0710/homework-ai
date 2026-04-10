@@ -1,6 +1,13 @@
 import OpenAI from 'openai';
 import { AiConfig } from './ai-config';
 
+export interface AiFigure {
+  id: number;
+  imageOrder: number;
+  description: string;
+  region: { x: number; y: number; w: number; h: number };
+}
+
 export interface AiQuestion {
   questionNumber: number;
   imageOrder: number;
@@ -11,7 +18,7 @@ export interface AiQuestion {
   explanation: string;
   topic: string | null;
   difficulty: string | null;
-  figureRegion?: { x: number; y: number; w: number; h: number } | null;
+  figureId?: number | null;
 }
 
 export interface AiAnalysisResult {
@@ -21,6 +28,7 @@ export interface AiAnalysisResult {
   correctCount: number;
   partialCorrectCount: number;
   wrongCount: number;
+  figures: AiFigure[];
   questions: AiQuestion[];
   latencyMs: number;
 }
@@ -63,6 +71,14 @@ Schema:
   "correctCount": number,
   "partialCorrectCount": number,
   "wrongCount": number,
+  "figures": [
+    {
+      "id": 1,
+      "imageOrder": 1,
+      "description": "Short description of the figure (e.g. 'Flower A/B/C diagram')",
+      "region": {"x": 0.0, "y": 0.0, "w": 1.0, "h": 0.3}
+    }
+  ],
   "questions": [{
     "questionNumber": number,
     "imageOrder": number,
@@ -73,11 +89,15 @@ Schema:
     "explanation": "Why the answer is wrong/partial (empty string if correct)",
     "topic": "Topic tag (e.g. addition, grammar, forces)",
     "difficulty": "easy|medium|hard",
-    "figureRegion": {"x": 0.0, "y": 0.0, "w": 1.0, "h": 0.3} or null
+    "figureId": 1 or null
   }]
 }
 
-figureRegion is a normalized bounding box (0–1) of the diagram, table, or figure the question directly references in that image. Include it whenever the question cannot be answered without seeing the visual (e.g. a flower diagram, data table, graph, map). Set to null if the question is purely text-based. x/y = top-left corner, w/h = width/height, all as fractions of the image dimensions.`;
+IMPORTANT — figures array rules:
+Step 1 — identify ALL diagrams, tables, graphs, images and illustrations in every homework image. Add each one to the "figures" array with a tight bounding box (x/y = top-left corner, w/h = width/height, all as fractions 0.0–1.0 of image dimensions). Do NOT include question text in the bounding box — crop only the visual element itself.
+Step 2 — for each question, set "figureId" to the id of the figure the question references. Set to null only for purely text-based questions with no visual.
+- Multi-part questions (i)(ii)(iii)(iv) or (a)(b)(c) referencing the same figure must ALL use the same figureId.
+- Any question containing "study the", "as shown", "based on the diagram/figure/table/graph/observations", "refer to", "shown below/above", "the diagram/figure/table/graph/observations show(s)" MUST have a non-null figureId.`;
 
   const response = await client.chat.completions.create({
     model: config.model,
@@ -110,5 +130,5 @@ figureRegion is a normalized bounding box (0–1) of the diagram, table, or figu
     throw new Error(`AI returned invalid JSON: ${cleaned.slice(0, 200)}`);
   }
 
-  return { ...parsed, latencyMs };
+  return { ...parsed, figures: parsed.figures ?? [], latencyMs };
 }

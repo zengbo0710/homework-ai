@@ -111,32 +111,35 @@ export async function submissionRoutes(app: FastifyInstance): Promise<void> {
         },
       });
 
-      // Save only wrong + partial_correct to DB (with optional cropped figure image)
+      // Build figureId → cropped image URL map (crop each unique figure once)
+      const figureUrlMap = new Map<number, string>();
+      for (const fig of (result.figures ?? [])) {
+        if (fig.imageOrder < 1 || fig.imageOrder > processedBuffers.length) continue;
+        try {
+          const buf = processedBuffers[fig.imageOrder - 1];
+          const meta = await sharp(buf).metadata();
+          const imgW = meta.width ?? 800;
+          const imgH = meta.height ?? 1000;
+          const left = Math.max(0, Math.round(fig.region.x * imgW));
+          const top = Math.max(0, Math.round(fig.region.y * imgH));
+          const width = Math.min(imgW - left, Math.max(1, Math.round(fig.region.w * imgW)));
+          const height = Math.min(imgH - top, Math.max(1, Math.round(fig.region.h * imgH)));
+          const cropBuf = await sharp(buf)
+            .extract({ left, top, width, height })
+            .jpeg({ quality: 85 })
+            .toBuffer();
+          const cropFilename = `${uuidv4()}.jpg`;
+          fs.writeFileSync(path.join(submissionsDir, cropFilename), cropBuf);
+          figureUrlMap.set(fig.id, `/uploads/submissions/${cropFilename}`);
+        } catch (cropErr) {
+          console.warn('[submissions] figure_crop_failed:', cropErr);
+        }
+      }
+
+      // Save only wrong + partial_correct to DB
       const toSave = result.questions.filter((q) => q.status !== 'correct');
       for (const q of toSave) {
-        let figureImageUrl: string | null = null;
-
-        if (q.figureRegion && q.imageOrder >= 1 && q.imageOrder <= processedBuffers.length) {
-          try {
-            const buf = processedBuffers[q.imageOrder - 1];
-            const meta = await sharp(buf).metadata();
-            const imgW = meta.width ?? 800;
-            const imgH = meta.height ?? 1000;
-            const left = Math.max(0, Math.round(q.figureRegion.x * imgW));
-            const top = Math.max(0, Math.round(q.figureRegion.y * imgH));
-            const width = Math.min(imgW - left, Math.max(1, Math.round(q.figureRegion.w * imgW)));
-            const height = Math.min(imgH - top, Math.max(1, Math.round(q.figureRegion.h * imgH)));
-            const cropBuf = await sharp(buf)
-              .extract({ left, top, width, height })
-              .jpeg({ quality: 85 })
-              .toBuffer();
-            const cropFilename = `${uuidv4()}.jpg`;
-            fs.writeFileSync(path.join(submissionsDir, cropFilename), cropBuf);
-            figureImageUrl = `/uploads/submissions/${cropFilename}`;
-          } catch (cropErr) {
-            console.warn('[submissions] figure_crop_failed:', cropErr);
-          }
-        }
+        const figureImageUrl = q.figureId != null ? (figureUrlMap.get(q.figureId) ?? null) : null;
 
         await app.prisma.wrongAnswer.create({
           data: {
