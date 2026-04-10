@@ -180,6 +180,7 @@ export async function submissionRoutes(app: FastifyInstance): Promise<void> {
         createdAt: updated!.createdAt,
       });
     } catch (err) {
+      console.error('[submissions] ai_analysis_failed:', err);
       await refundToken(app.prisma, request.parentId, submission.id, 'submission').catch(() => {});
       await app.prisma.submission.update({
         where: { id: submission.id },
