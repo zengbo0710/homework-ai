@@ -33,7 +33,7 @@ describe('getAiConfig', () => {
     await prisma.systemConfig.deleteMany({ where: { key: { in: AI_KEYS } } });
     clearAiConfigCache();
     const config = await getAiConfig(prisma);
-    expect(config.model).toBe('gpt-4o-mini');
+    expect(config.model).toBe('deepseek-chat');
     expect(config.maxTokens).toBe(4096);
   });
 });

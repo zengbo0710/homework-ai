@@ -8,7 +8,9 @@ vi.mock('sharp', () => {
   const fakeSharp = () => ({
     resize: () => fakeSharp(),
     jpeg: () => fakeSharp(),
+    extract: () => fakeSharp(),
     toBuffer: () => Promise.resolve(Buffer.from('fake-processed-image')),
+    metadata: () => Promise.resolve({ width: 800, height: 1000 }),
   });
   return { default: fakeSharp };
 });
@@ -22,15 +24,17 @@ vi.mock('../lib/ai-analysis', () => ({
     correctCount: 1,
     partialCorrectCount: 0,
     wrongCount: 1,
+    figures: [],
     questions: [
       {
         questionNumber: 1, imageOrder: 1, questionText: '1+1=?', childAnswer: '2',
         correctAnswer: '2', status: 'correct', explanation: '', topic: 'addition', difficulty: 'easy',
+        figureId: null,
       },
       {
         questionNumber: 2, imageOrder: 1, questionText: '5×3=?', childAnswer: '14',
         correctAnswer: '15', status: 'wrong', explanation: 'Multiplication error',
-        topic: 'multiplication', difficulty: 'medium',
+        topic: 'multiplication', difficulty: 'medium', figureId: null,
       },
     ],
     latencyMs: 500,
