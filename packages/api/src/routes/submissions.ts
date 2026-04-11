@@ -136,10 +136,22 @@ export async function submissionRoutes(app: FastifyInstance): Promise<void> {
         }
       }
 
-      // Save only wrong + partial_correct to DB
+      // Save only wrong + partial_correct to DB (skip duplicates)
       const toSave = result.questions.filter((q) => q.status !== 'correct');
       for (const q of toSave) {
         const figureImageUrl = q.figureId != null ? (figureUrlMap.get(q.figureId) ?? null) : null;
+
+        // Deduplicate: skip if an identical unresolved wrong answer already exists
+        const existing = await app.prisma.wrongAnswer.findFirst({
+          where: {
+            childId,
+            subject: result.subject as Subject,
+            questionText: q.questionText,
+            resolvedAt: null,
+          },
+          select: { id: true },
+        });
+        if (existing) continue;
 
         await app.prisma.wrongAnswer.create({
           data: {
