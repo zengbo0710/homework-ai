@@ -10,6 +10,7 @@ import { deductToken, refundToken } from '../lib/token-helpers';
 import { getAiVisionConfig } from '../lib/ai-config';
 import { getAIClient } from '../lib/openai';
 import { analyzeHomework } from '../lib/ai-analysis';
+import { normalizeQuestionText } from '../lib/text-normalize';
 
 export async function submissionRoutes(app: FastifyInstance): Promise<void> {
   // POST /api/submissions — upload 1-10 images, run AI analysis, return completed result
@@ -136,40 +137,76 @@ export async function submissionRoutes(app: FastifyInstance): Promise<void> {
         }
       }
 
-      // Save only wrong + partial_correct to DB (skip duplicates)
+      // Crop per-question regions (best-effort) for every wrong/partial question
+      async function cropQuestionRegion(q: typeof result.questions[number]): Promise<string | null> {
+        if (!q.region || q.imageOrder < 1 || q.imageOrder > processedBuffers.length) return null;
+        try {
+          const buf = processedBuffers[q.imageOrder - 1];
+          const meta = await sharp(buf).metadata();
+          const imgW = meta.width ?? 800;
+          const imgH = meta.height ?? 1000;
+          const left = Math.max(0, Math.round(q.region.x * imgW));
+          const top = Math.max(0, Math.round(q.region.y * imgH));
+          const width = Math.min(imgW - left, Math.max(1, Math.round(q.region.w * imgW)));
+          const height = Math.min(imgH - top, Math.max(1, Math.round(q.region.h * imgH)));
+          const cropBuf = await sharp(buf)
+            .extract({ left, top, width, height })
+            .jpeg({ quality: 85 })
+            .toBuffer();
+          const cropFilename = `${uuidv4()}.jpg`;
+          fs.writeFileSync(path.join(submissionsDir, cropFilename), cropBuf);
+          return `/uploads/submissions/${cropFilename}`;
+        } catch (cropErr) {
+          console.warn('[submissions] question_crop_failed:', cropErr);
+          return null;
+        }
+      }
+
+      // Save only wrong + partial_correct, skipping duplicates across full history
       const toSave = result.questions.filter((q) => q.status !== 'correct');
       for (const q of toSave) {
-        const figureImageUrl = q.figureId != null ? (figureUrlMap.get(q.figureId) ?? null) : null;
+        const normalized = normalizeQuestionText(q.questionText).slice(0, 500);
 
-        // Deduplicate: skip if an identical unresolved wrong answer already exists
+        // Strict dedup: skip if same normalized question already exists for this child+subject,
+        // regardless of resolvedAt status.
         const existing = await app.prisma.wrongAnswer.findFirst({
           where: {
             childId,
             subject: result.subject as Subject,
-            questionText: q.questionText,
-            resolvedAt: null,
+            questionTextNormalized: normalized,
           },
           select: { id: true },
         });
         if (existing) continue;
 
-        await app.prisma.wrongAnswer.create({
-          data: {
-            submissionId: submission.id,
-            childId,
-            subject: result.subject as Subject,
-            questionNumber: q.questionNumber,
-            imageOrder: q.imageOrder,
-            questionText: q.questionText,
-            childAnswer: q.childAnswer ?? null,
-            correctAnswer: q.correctAnswer,
-            status: q.status as WrongAnswerStatus,
-            explanation: q.explanation,
-            topic: q.topic ?? null,
-            difficulty: q.difficulty ?? null,
-            figureImageUrl,
-          },
-        });
+        const figureImageUrl = q.figureId != null ? (figureUrlMap.get(q.figureId) ?? null) : null;
+        const questionImageUrl = await cropQuestionRegion(q);
+
+        try {
+          await app.prisma.wrongAnswer.create({
+            data: {
+              submissionId: submission.id,
+              childId,
+              subject: result.subject as Subject,
+              questionNumber: q.questionNumber,
+              imageOrder: q.imageOrder,
+              questionText: q.questionText,
+              questionTextNormalized: normalized,
+              childAnswer: q.childAnswer ?? null,
+              correctAnswer: q.correctAnswer,
+              status: q.status as WrongAnswerStatus,
+              explanation: q.explanation,
+              topic: q.topic ?? null,
+              difficulty: q.difficulty ?? null,
+              figureImageUrl,
+              questionImageUrl,
+            },
+          });
+        } catch (err) {
+          const code = (err as { code?: string })?.code;
+          if (code === 'P2002') continue; // another concurrent request inserted this first
+          throw err;
+        }
       }
 
       await app.prisma.submission.update({
@@ -217,6 +254,7 @@ export async function submissionRoutes(app: FastifyInstance): Promise<void> {
           explanation: wa.explanation,
           topic: wa.topic,
           figureImageUrl: wa.figureImageUrl,
+          questionImageUrl: wa.questionImageUrl,
           resolvedAt: wa.resolvedAt,
         })),
         createdAt: updated!.createdAt,
@@ -280,6 +318,7 @@ export async function submissionRoutes(app: FastifyInstance): Promise<void> {
         explanation: wa.explanation,
         topic: wa.topic,
         figureImageUrl: wa.figureImageUrl,
+        questionImageUrl: wa.questionImageUrl,
         resolvedAt: wa.resolvedAt,
       })),
       createdAt: submission.createdAt,

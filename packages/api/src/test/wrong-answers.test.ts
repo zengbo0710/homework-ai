@@ -3,15 +3,22 @@ import { FastifyInstance } from 'fastify';
 import { buildApp } from '../app';
 import { prisma, cleanDb, registerParent } from './helpers';
 
-async function seedWrongAnswer(childId: string, submissionId: string, overrides = {}) {
+async function seedWrongAnswer(childId: string, submissionId: string, overrides: Record<string, unknown> = {}) {
+  const questionNumber = (overrides.questionNumber as number) ?? 1;
+  const questionText = (overrides.questionText as string) ?? 'What is 5×3?';
+  // Use questionNumber as a tiebreaker in questionTextNormalized to avoid unique-constraint
+  // violations when the same question text is seeded for the same child+subject.
+  const questionTextNormalized = (overrides.questionTextNormalized as string)
+    ?? `${questionText.toLowerCase().replace(/\s+/g, ' ').trim()} #${questionNumber}`.slice(0, 500);
   return prisma.wrongAnswer.create({
     data: {
       submissionId,
       childId,
       subject: 'math',
-      questionNumber: 1,
+      questionNumber,
       imageOrder: 1,
-      questionText: 'What is 5×3?',
+      questionText,
+      questionTextNormalized,
       childAnswer: '14',
       correctAnswer: '15',
       status: 'wrong',

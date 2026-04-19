@@ -47,8 +47,8 @@ describe('Reports routes', () => {
 
     await prisma.wrongAnswer.createMany({
       data: [
-        { submissionId: submission.id, childId, subject: 'math', questionNumber: 1, imageOrder: 1, questionText: '5×3=?', childAnswer: '14', correctAnswer: '15', status: 'wrong', explanation: 'E', topic: 'multiplication' },
-        { submissionId: submission.id, childId, subject: 'math', questionNumber: 2, imageOrder: 1, questionText: '6×3=?', childAnswer: '16', correctAnswer: '18', status: 'wrong', explanation: 'E', topic: 'multiplication' },
+        { submissionId: submission.id, childId, subject: 'math', questionNumber: 1, imageOrder: 1, questionText: '5×3=?', questionTextNormalized: '5×3=?', childAnswer: '14', correctAnswer: '15', status: 'wrong', explanation: 'E', topic: 'multiplication' },
+        { submissionId: submission.id, childId, subject: 'math', questionNumber: 2, imageOrder: 1, questionText: '6×3=?', questionTextNormalized: '6×3=?', childAnswer: '16', correctAnswer: '18', status: 'wrong', explanation: 'E', topic: 'multiplication' },
       ],
     });
   });

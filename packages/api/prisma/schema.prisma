@@ -204,6 +204,7 @@ model WrongAnswer {
   @@index([childId, subject])
   @@index([childId, topic])
   @@index([childId, subject, questionTextNormalized])
+  @@unique([childId, subject, questionTextNormalized], name: "wrong_answers_unique_question")
   @@map("wrong_answers")
 }
 
