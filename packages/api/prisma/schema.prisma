@@ -177,22 +177,24 @@ model AiResponse {
 }
 
 model WrongAnswer {
-  id             String            @id @default(uuid())
-  submissionId   String
-  childId        String
-  subject        Subject
-  questionNumber Int
-  imageOrder     Int
-  questionText   String            @db.Text
-  childAnswer    String?           @db.Text
-  correctAnswer  String            @db.Text
-  status         WrongAnswerStatus
-  explanation    String            @db.Text
-  topic          String?           @db.VarChar(100)
-  difficulty     String?           @db.VarChar(20)
-  figureImageUrl String?           @db.VarChar(500)
-  resolvedAt     DateTime?
-  createdAt      DateTime          @default(now())
+  id                     String            @id @default(uuid())
+  submissionId           String
+  childId                String
+  subject                Subject
+  questionNumber         Int
+  imageOrder             Int
+  questionText           String            @db.Text
+  questionTextNormalized String            @db.VarChar(500)
+  childAnswer            String?           @db.Text
+  correctAnswer          String            @db.Text
+  status                 WrongAnswerStatus
+  explanation            String            @db.Text
+  topic                  String?           @db.VarChar(100)
+  difficulty             String?           @db.VarChar(20)
+  figureImageUrl         String?           @db.VarChar(500)
+  questionImageUrl       String?           @db.VarChar(500)
+  resolvedAt             DateTime?
+  createdAt              DateTime          @default(now())
 
   submission      Submission              @relation(fields: [submissionId], references: [id], onDelete: Cascade)
   child           Child                   @relation(fields: [childId], references: [id], onDelete: Cascade)
@@ -201,6 +203,7 @@ model WrongAnswer {
   @@index([childId])
   @@index([childId, subject])
   @@index([childId, topic])
+  @@index([childId, subject, questionTextNormalized])
   @@map("wrong_answers")
 }
 
