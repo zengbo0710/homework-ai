@@ -30,11 +30,13 @@ vi.mock('../lib/ai-analysis', () => ({
         questionNumber: 1, imageOrder: 1, questionText: '1+1=?', childAnswer: '2',
         correctAnswer: '2', status: 'correct', explanation: '', topic: 'addition', difficulty: 'easy',
         figureId: null,
+        region: { x: 0, y: 0, w: 1, h: 0.2 },
       },
       {
         questionNumber: 2, imageOrder: 1, questionText: '5×3=?', childAnswer: '14',
         correctAnswer: '15', status: 'wrong', explanation: 'Multiplication error',
         topic: 'multiplication', difficulty: 'medium', figureId: null,
+        region: { x: 0, y: 0.2, w: 1, h: 0.2 },
       },
     ],
     latencyMs: 500,
@@ -155,5 +157,43 @@ describe('POST /api/submissions', () => {
     });
 
     expect(res.statusCode).toBe(400);
+  });
+
+  it('does not create a duplicate wrong-answer when the same question was resolved earlier', async () => {
+    // Seed a previously-resolved wrong answer for the same child+subject+question
+    const prevSubmission = await prisma.submission.create({
+      data: { childId, imageCount: 1, status: 'completed' },
+    });
+    await prisma.wrongAnswer.create({
+      data: {
+        submissionId: prevSubmission.id,
+        childId,
+        subject: 'math',
+        questionNumber: 99,
+        imageOrder: 1,
+        questionText: '5×3=?',
+        questionTextNormalized: '5×3=?',
+        childAnswer: '14',
+        correctAnswer: '15',
+        status: 'wrong',
+        explanation: 'prev',
+        resolvedAt: new Date(),
+      },
+    });
+
+    const { body, contentType } = buildMultipart(childId, minimalJpeg);
+    const res = await app.inject({
+      method: 'POST', url: '/api/submissions',
+      headers: { authorization: `Bearer ${accessToken}`, 'content-type': contentType },
+      payload: body,
+    });
+
+    expect(res.statusCode).toBe(201);
+    // Count by questionText (not normalized) so this test is meaningful BEFORE Task 5
+    // lands normalization writes; after Task 5 the dedup logic is what keeps count at 1.
+    const waCount = await prisma.wrongAnswer.count({
+      where: { childId, questionText: '5×3=?' },
+    });
+    expect(waCount).toBe(1); // NOT 2 — the resolved row must block the new one
   });
 });

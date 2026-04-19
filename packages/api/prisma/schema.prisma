@@ -184,7 +184,7 @@ model WrongAnswer {
   questionNumber         Int
   imageOrder             Int
   questionText           String            @db.Text
-  questionTextNormalized String            @db.VarChar(500)
+  questionTextNormalized String            @default("") @db.VarChar(500)
   childAnswer            String?           @db.Text
   correctAnswer          String            @db.Text
   status                 WrongAnswerStatus
