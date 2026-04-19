@@ -19,6 +19,7 @@ export interface AiQuestion {
   topic: string | null;
   difficulty: string | null;
   figureId?: number | null;
+  region?: { x: number; y: number; w: number; h: number };
 }
 
 export interface AiAnalysisResult {
@@ -89,7 +90,8 @@ Schema:
     "explanation": "Why the answer is wrong/partial (empty string if correct)",
     "topic": "Topic tag (e.g. addition, grammar, forces)",
     "difficulty": "easy|medium|hard",
-    "figureId": 1 or null
+    "figureId": 1 or null,
+    "region": {"x": 0.0, "y": 0.0, "w": 1.0, "h": 0.2}
   }]
 }
 
@@ -97,7 +99,10 @@ IMPORTANT — figures array rules:
 Step 1 — identify ALL diagrams, tables, graphs, images and illustrations in every homework image. Add each one to the "figures" array with a tight bounding box (x/y = top-left corner, w/h = width/height, all as fractions 0.0–1.0 of image dimensions). Do NOT include question text in the bounding box — crop only the visual element itself.
 Step 2 — for each question, set "figureId" to the id of the figure the question references. Set to null only for purely text-based questions with no visual.
 - Multi-part questions (i)(ii)(iii)(iv) or (a)(b)(c) referencing the same figure must ALL use the same figureId.
-- Any question containing "study the", "as shown", "based on the diagram/figure/table/graph/observations", "refer to", "shown below/above", "the diagram/figure/table/graph/observations show(s)" MUST have a non-null figureId.`;
+- Any question containing "study the", "as shown", "based on the diagram/figure/table/graph/observations", "refer to", "shown below/above", "the diagram/figure/table/graph/observations show(s)" MUST have a non-null figureId.
+
+IMPORTANT — questions[].region rules:
+Every question MUST include a "region" bounding box on its own imageOrder. The box covers the FULL content of the question: question number, stem, all sub-parts, answer blanks, and the child's handwritten answer. Include a small margin (a few pixels) but do NOT include unrelated neighbour questions. x/y are fractions of the image's top-left origin, w/h are fractions of the image dimensions, all in [0.0, 1.0].`;
 
   const response = await client.chat.completions.create({
     model: config.model,
