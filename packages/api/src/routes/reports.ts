@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import { FastifyInstance } from 'fastify';
+import { Prisma, Subject } from '@prisma/client';
 import { authenticate } from '../plugins/authenticate';
 import { deductToken, refundToken } from '../lib/token-helpers';
 import { getAiConfig } from '../lib/ai-config';
@@ -24,7 +25,7 @@ export async function reportRoutes(app: FastifyInstance): Promise<void> {
     if (!balance || balance.balance < 1) return reply.status(402).send({ error: 'insufficient_tokens' });
 
     const wrongAnswers = await app.prisma.wrongAnswer.findMany({
-      where: { childId, subject: subject as any, resolvedAt: null },
+      where: { childId, subject: subject as Subject, resolvedAt: null },
     });
     if (wrongAnswers.length === 0) return reply.status(400).send({ error: 'no_wrong_answers' });
 
@@ -46,10 +47,10 @@ export async function reportRoutes(app: FastifyInstance): Promise<void> {
         data: {
           id: reportId,
           childId,
-          subject: subject as any,
+          subject: subject as Subject,
           sourceWrongIds: wrongAnswers.map((wa) => wa.id),
-          topicGroups: result.topicGroups as any,
-          weaknesses: result.weaknesses as any,
+          topicGroups: result.topicGroups as unknown as Prisma.InputJsonValue,
+          weaknesses: result.weaknesses as unknown as Prisma.InputJsonValue,
           summary: result.summary,
           totalQuestions: wrongAnswers.length,
           totalTopics: result.topicGroups.length,
@@ -84,7 +85,7 @@ export async function reportRoutes(app: FastifyInstance): Promise<void> {
     if (child.parentId !== request.parentId) return reply.status(403).send({ error: 'forbidden' });
 
     const report = await app.prisma.weaknessReport.findFirst({
-      where: { childId, subject: subject as any },
+      where: { childId, subject: subject as Subject },
       orderBy: { createdAt: 'desc' },
     });
     if (!report) return reply.status(404).send({ error: 'not_found' });

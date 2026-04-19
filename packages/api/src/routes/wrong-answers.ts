@@ -1,4 +1,5 @@
 import { FastifyInstance } from 'fastify';
+import { Subject } from '@prisma/client';
 import { authenticate } from '../plugins/authenticate';
 
 const SUBJECTS = ['math', 'english', 'science', 'chinese', 'higher_chinese'] as const;
@@ -40,7 +41,7 @@ export async function wrongAnswerRoutes(app: FastifyInstance): Promise<void> {
 
     const where = {
       childId: query.childId,
-      ...(query.subject ? { subject: query.subject as any } : {}),
+      ...(query.subject ? { subject: query.subject as Subject } : {}),
       ...(isResolved ? { resolvedAt: { not: null } } : { resolvedAt: null }),
     };
 

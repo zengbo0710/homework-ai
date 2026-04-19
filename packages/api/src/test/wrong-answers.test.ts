@@ -25,7 +25,6 @@ async function seedWrongAnswer(childId: string, submissionId: string, overrides 
 describe('Wrong-answer routes', () => {
   let app: FastifyInstance;
   let accessToken: string;
-  let parentId: string;
   let childId: string;
   let submissionId: string;
 
@@ -36,7 +35,6 @@ describe('Wrong-answer routes', () => {
 
     const auth = await registerParent(app);
     accessToken = auth.accessToken;
-    parentId = auth.user.id;
 
     const childRes = await app.inject({
       method: 'POST', url: '/api/children',

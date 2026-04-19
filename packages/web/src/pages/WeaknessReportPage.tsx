@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { apiClient } from '../lib/api';
 
 interface TopicGroup {
@@ -66,10 +67,10 @@ export function WeaknessReportPage() {
     try {
       const res = await apiClient.post('/reports/weakness', { childId, subject });
       setReport(res.data);
-    } catch (err: any) {
-      if (err.response?.status === 402) {
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 402) {
         setError('Insufficient tokens. Please purchase more tokens.');
-      } else if (err.response?.data?.error === 'no_wrong_answers') {
+      } else if (axios.isAxiosError(err) && err.response?.data?.error === 'no_wrong_answers') {
         setError('No unresolved wrong answers found for this subject.');
       } else {
         setError('Failed to generate report. Please try again.');

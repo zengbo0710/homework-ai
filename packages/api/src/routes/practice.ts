@@ -1,4 +1,5 @@
 import { FastifyInstance } from 'fastify';
+import { Subject } from '@prisma/client';
 import { authenticate } from '../plugins/authenticate';
 import { deductToken, refundToken } from '../lib/token-helpers';
 import { getAiConfig } from '../lib/ai-config';
@@ -32,7 +33,7 @@ export async function practiceRoutes(app: FastifyInstance): Promise<void> {
     const wrongAnswers = await app.prisma.wrongAnswer.findMany({
       where: {
         childId,
-        subject: subject as any,
+        subject: subject as Subject,
         ...(source === 'active' ? { resolvedAt: null } : { resolvedAt: { not: null } }),
       },
     });
@@ -43,7 +44,7 @@ export async function practiceRoutes(app: FastifyInstance): Promise<void> {
     const session = await app.prisma.practiceSession.create({
       data: {
         childId,
-        subject: subject as any,
+        subject: subject as Subject,
         sourceType: source,
         multiplier,
         totalQuestions: 0, // updated after generation
@@ -129,7 +130,7 @@ export async function practiceRoutes(app: FastifyInstance): Promise<void> {
     const sessions = await app.prisma.practiceSession.findMany({
       where: {
         childId: query.childId,
-        ...(query.subject ? { subject: query.subject as any } : {}),
+        ...(query.subject ? { subject: query.subject as Subject } : {}),
       },
       orderBy: { generatedAt: 'desc' },
       skip: (page - 1) * limit,

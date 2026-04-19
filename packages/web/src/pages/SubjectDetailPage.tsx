@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { apiClient } from '../lib/api';
 
 interface WrongAnswer {
@@ -95,10 +96,14 @@ export function SubjectDetailPage() {
         multiplier: 2,
       });
       navigate(`/practice/${res.data.id}`);
-    } catch (err: any) {
-      if (err.response?.status === 402) {
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 402) {
         alert('Insufficient tokens. Please purchase more tokens.');
-      } else if (err.response?.status === 400 && err.response?.data?.error === 'no_wrong_answers') {
+      } else if (
+        axios.isAxiosError(err) &&
+        err.response?.status === 400 &&
+        err.response?.data?.error === 'no_wrong_answers'
+      ) {
         alert('No wrong answers found for this subject and filter.');
       } else {
         alert('Failed to generate practice. Please try again.');
