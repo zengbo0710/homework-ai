@@ -91,6 +91,18 @@ describe('Wrong-answer routes', () => {
       expect(body.data).toHaveLength(1);
       expect(body.data[0].questionText).toBe('What is 5×3?');
     });
+
+    it('returns questionImageUrl when set on the wrong answer', async () => {
+      await seedWrongAnswer(childId, submissionId, {
+        questionImageUrl: '/uploads/submissions/test-question.jpg',
+      });
+      const res = await app.inject({
+        method: 'GET', url: `/api/wrong-answers?childId=${childId}&subject=math&resolved=false`,
+        headers: auth(),
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.json().data[0].questionImageUrl).toBe('/uploads/submissions/test-question.jpg');
+    });
   });
 
   describe('PATCH /api/wrong-answers/:id/resolve', () => {

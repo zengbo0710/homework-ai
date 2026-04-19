@@ -69,6 +69,7 @@ export async function wrongAnswerRoutes(app: FastifyInstance): Promise<void> {
         explanation: wa.explanation,
         topic: wa.topic,
         figureImageUrl: wa.figureImageUrl,
+        questionImageUrl: wa.questionImageUrl,
         pageImageUrl: wa.submission.images.find((img) => img.sortOrder === wa.imageOrder)?.imageUrl ?? null,
         resolvedAt: wa.resolvedAt,
         createdAt: wa.createdAt,
