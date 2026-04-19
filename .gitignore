@@ -6,3 +6,15 @@ dist/
 .DS_Store
 coverage/
 *.tsbuildinfo
+
+# Uploaded user content — never commit
+packages/api/uploads/**/*
+!packages/api/uploads/**/.gitkeep
+
+# Local tool state
+.claude/
+.playwright-mcp/
+
+# Root-level screenshots / scratch artifacts
+/*.png
+/test/
