@@ -19,6 +19,7 @@ interface WrongAnswer {
   explanation: string;
   topic: string | null;
   figureImageUrl: string | null;
+  questionImageUrl: string | null;
 }
 
 interface SubmissionResult {
@@ -167,7 +168,6 @@ export function SubmissionResultPage() {
                       </span>
                     </div>
 
-                    {/* Cropped figure — shown when AI identified a diagram/table */}
                     {wa.figureImageUrl && (
                       <img
                         src={wa.figureImageUrl}
@@ -175,9 +175,16 @@ export function SubmissionResultPage() {
                         className="rounded-lg border border-gray-200 w-full object-contain mb-3 max-h-64"
                       />
                     )}
-
-                    {/* Full page — collapsible fallback when no cropped figure */}
-                    {!wa.figureImageUrl && imgUrl && <QuestionImage imageUrl={imgUrl} />}
+                    {wa.questionImageUrl && (
+                      <img
+                        src={wa.questionImageUrl}
+                        alt="Question"
+                        className="rounded-lg border border-gray-200 w-full object-contain mb-3 max-h-80"
+                      />
+                    )}
+                    {!wa.figureImageUrl && !wa.questionImageUrl && imgUrl && (
+                      <QuestionImage imageUrl={imgUrl} />
+                    )}
 
                     <p className="text-sm font-medium mb-1">{wa.questionText}</p>
                     {wa.childAnswer && (
