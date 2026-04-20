@@ -13,6 +13,7 @@ interface WrongAnswer {
   explanation: string;
   topic: string | null;
   figureImageUrl: string | null;
+  questionImageUrl: string | null;
   pageImageUrl: string | null;
   resolvedAt: string | null;
 }
@@ -181,7 +182,6 @@ export function SubjectDetailPage() {
                 {wa.status === 'wrong' ? 'Wrong' : 'Partial'}
               </span>
             </div>
-            {/* Cropped figure — shown when AI identified a diagram */}
             {wa.figureImageUrl && (
               <img
                 src={wa.figureImageUrl}
@@ -189,8 +189,16 @@ export function SubjectDetailPage() {
                 className="rounded-lg border border-gray-200 w-full object-contain mb-3 max-h-64"
               />
             )}
-            {/* Full page — collapsible fallback */}
-            {!wa.figureImageUrl && wa.pageImageUrl && <QuestionImage imageUrl={wa.pageImageUrl} />}
+            {wa.questionImageUrl && (
+              <img
+                src={wa.questionImageUrl}
+                alt="Question"
+                className="rounded-lg border border-gray-200 w-full object-contain mb-3 max-h-80"
+              />
+            )}
+            {!wa.figureImageUrl && !wa.questionImageUrl && wa.pageImageUrl && (
+              <QuestionImage imageUrl={wa.pageImageUrl} />
+            )}
 
             <p className="text-sm font-medium mb-1">{wa.questionText}</p>
             {wa.childAnswer && <p className="text-sm text-red-700">Answered: {wa.childAnswer}</p>}
